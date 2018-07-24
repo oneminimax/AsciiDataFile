@@ -298,6 +298,7 @@ class PPMSACMSDataReader(Reader):
             line = self.readLine()
             if self.lineMatch(line,"\[Data\]"):
                 break
+        line = self.readLine()
 
     def defineFieldUnitColumn(self):
 
