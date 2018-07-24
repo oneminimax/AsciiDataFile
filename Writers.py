@@ -1,5 +1,5 @@
 import numpy as np
-import os
+from os import path
 import time
 import re
 
@@ -24,7 +24,7 @@ class Writer(object):
     def checkExistingFile(self):
 
         newFileName = self.fileName
-        while os.path.isfile(newFileName):
+        while path.isfile(newFileName):
             m = re.match('(.+)_(\d{3}).([^.]+)\Z',newFileName)
             if m:
                 baseName = m.group(1)
@@ -32,7 +32,7 @@ class Writer(object):
                 ext = m.group(3)
                 newFileName = '{0:s}_{1:03d}.{2:s}'.format(baseName,dig+1,ext)
             else:
-                root, ext = os.path.splitext(newFileName)
+                root, ext = path.splitext(newFileName)
                 newFileName = root + '_002' + ext
 
         print(self.fileName,'-->',newFileName)
