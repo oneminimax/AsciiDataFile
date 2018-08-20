@@ -3,17 +3,21 @@ import re
 
 class Reader(object):
 
-    def __init__(self,filePath):
+    def __init__(self):
 
-        self.filePath = filePath
+        pass
+
+    def read(self,filePath):
+
         self._openFile(filePath)
-        self.readHeader()
+        self._readHeader()
 
-        fieldNameList, unitList, columnNumber = self.defineFieldUnitColumn()
+        self.fieldNameList, self.unitList, self.columnNumber = self.defineFieldUnitColumn()
+        self._initDataInterpret()
+        
+        DC = self._readData()
 
-        self.initDataContainer(fieldNameList, unitList)
-        self.initDataInterpret(fieldNameList, columnNumber)
-        self.readExistingData()
+        return DC
     
     def __str__(self):
 
@@ -22,127 +26,99 @@ class Reader(object):
     def _openFile(self,filePath):
         try:
             self.fId = open(filePath,'r')
-            self.filePath = filePath
+
         except IOError:
             print("Cannot open {0:s}".format(filePath))
             raise
 
-    def readHeader(self):
+    def _readHeader(self):
 
         pass
 
-    def readLine(self):
+    def _readLine(self):
 
         return self.fId.readline()
 
-    def lineMatch(self,line,patern):
+    def _lineMatch(self,line,patern):
 
         return bool(re.match(patern,line))
 
-    def readUntil(self,patern):
-
-        while True:
-            line = self.readLine(self)
-            if not line:
-                return False
-
-            if self.lineMath(line,patern):
-                return line
-
-    def initDataContainer(self,fieldNameList, unitList):
-
-        self.newData = np.zeros((len(fieldNameList),))
-        self.dataContainer = DataContainer(fieldNameList = fieldNameList,unitList = unitList)
-
-    def initDataInterpret(self,fieldNameList, columnNumber):
-
-        self.fieldColumnDict = self.makeFieldColumnDict(fieldNameList, columnNumber)
-
-    def readDataLine(self):
-
-        line = self.readLine()
-        splitedLine = re.split(self.separator,line)
-        if len(splitedLine) >= self.dataContainer.numberOfDataField:
-            self.interpretDataLine(splitedLine)
+    def _newDataContainer(self):
         
-        return bool(line)
+        return DataContainer(fieldNameList = self.fieldNameList,unitList = self.unitList)
+
+    def _initDataInterpret(self):
+
+        fieldColumnDict = dict()
+        for i, fieldName in enumerate(self.fieldNameList):
+            fieldColumnDict[fieldName] = self.columnNumber[i]
+
+        self.fieldColumnDict = fieldColumnDict
+
+    def _readDataLine(self):
+
+        line = self._readLine()
+        splitedLine = re.split(self.separator,line)
+        if len(splitedLine) >= len(self.fieldNameList):
+            newData = self.interpretDataLine(splitedLine)
+        else:
+            newData = None
+        
+        return bool(line), newData
 
     def interpretDataLine(self,splitedLine):
 
-        self.newData.fill(np.nan)
-        for iColumn, channel in enumerate(self.getFieldNameList()):
+        newData = np.zeros((len(self.fieldNameList),))
+        for iColumn, channel in enumerate(self.fieldNameList):
             columnNumber = self.fieldColumnDict[channel]
             try:
-                self.newData[iColumn] = float(splitedLine[columnNumber])
+                newData[iColumn] = float(splitedLine[columnNumber])
             except:
                 pass
-                # self.newData[iColumn] = np.nan
 
-        self.dataContainer.addDataPoint(self.newData)
+        return newData
 
-    def readExistingData(self):
+        # self.dataContainer
+
+    def _readData(self):
+
+        DC = self._newDataContainer()
     
         while True:
-            keepReading = self.readDataLine()
+            keepReading, newData = self._readDataLine()
             if keepReading:
-                pass
+                DC.addDataPoint(newData)
             else:
                 break
 
-    def makeFieldColumnDict(self,fieldNameList,columnNumber):
+        return DC
 
-        fieldColumnDict = dict()
-        for i, fieldName in enumerate(fieldNameList):
-            fieldColumnDict[fieldName] = columnNumber[i]
 
-        return fieldColumnDict
-
-    def getFieldNameList(self):
-
-        return self.dataContainer.fieldNameList
-
-    def getFieldUnitList(self):
-
-        return self.dataContainer.unitList
-
-    def getFieldByName(self,fieldName):
-
-        if fieldName in self.getFieldNameList():
-            return self.dataContainer.getFieldByName(fieldName)
-
-    def getFieldByIndex(self,index):
-
-        return self.dataContainer.getFieldByIndex(index)
-
-    def getFilePath(self):
-
-        return self.filePath
 
 class GenericDataReader(Reader):
-    def __init__(self,filePath,separator,fieldNameList,unitList = list(),nbHeadLine = 0):
+    def __init__(self,separator,fieldNameList,unitList = list(),nbHeadLine = 0):
         
         self.separator = separator
         self._fieldNameList = fieldNameList
         self._unitList = unitList
         self._nbHeadLine = nbHeadLine
 
-        Reader.__init__(self,filePath)
+        Reader.__init__(self)
 
     def defineFieldUnitColumn(self):
 
         return self._fieldNameList, self._unitList, list(range(len(self._fieldNameList)))
 
-    def readHeader(self):
+    def _readHeader(self):
         headerLines = list()
 
         for n in range(self._nbHeadLine):
             headerLines.append(self.fId.readline())
 
-
 class MDDataFileReader(Reader):
     separator = ','
 
-    def readHeader(self):
+    def _readHeader(self):
 
         headerLines = list()
 
@@ -196,11 +172,11 @@ class SQUIDDataReader(Reader):
 
     separator = ','
 
-    def readHeader(self):
+    def _readHeader(self):
 
         while True:
-            line = self.readLine()
-            if self.lineMatch(line,"\[Data\]"):
+            line = self._readLine()
+            if self._lineMatch(line,"\[Data\]"):
                 break
 
     def defineFieldUnitColumn(self):
@@ -233,18 +209,18 @@ class PPMSResistivityDataReader(Reader):
 
     separator = ','
 
-    def __init__(self,filePath,sampleNumber = 0):
+    def __init__(self,sampleNumber = 0):
         self.sampleNumber = sampleNumber
-        Reader.__init__(self,filePath)
+        Reader.__init__(self)
         
 
-    def readHeader(self):
+    def _readHeader(self):
 
         while True:
-            line = self.readLine()
-            if self.lineMatch(line,"\[Data\]"):
+            line = self._readLine()
+            if self._lineMatch(line,"\[Data\]"):
                 break
-        line = self.readLine()
+        line = self._readLine()
 
     def defineFieldUnitColumn(self):
 
@@ -285,20 +261,20 @@ class PPMSACMSDataReader(Reader):
 
     separator = ','
 
-    def __init__(self,filePath,numberOfHarmonics = 1):
+    def __init__(self,numberOfHarmonics = 1):
 
         self.numberOfHarmonics = numberOfHarmonics
 
-        Reader.__init__(self,filePath)
+        Reader.__init__(self)
         
 
-    def readHeader(self):
+    def _readHeader(self):
 
         while True:
-            line = self.readLine()
-            if self.lineMatch(line,"\[Data\]"):
+            line = self._readLine()
+            if self._lineMatch(line,"\[Data\]"):
                 break
-        line = self.readLine()
+        line = self._readLine()
 
     def defineFieldUnitColumn(self):
 
