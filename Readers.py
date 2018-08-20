@@ -15,9 +15,9 @@ class Reader(object):
         self.fieldNameList, self.unitList, self.columnNumber = self.defineFieldUnitColumn()
         self._initDataInterpret()
         
-        DC = self._readData()
+        self.DC = self._readData()
 
-        return DC
+        return self.DC
     
     def __str__(self):
 
@@ -62,6 +62,7 @@ class Reader(object):
         if len(splitedLine) >= len(self.fieldNameList):
             newData = self.interpretDataLine(splitedLine)
         else:
+            line = False
             newData = None
         
         return bool(line), newData
@@ -85,8 +86,8 @@ class Reader(object):
         DC = self._newDataContainer()
     
         while True:
-            keepReading, newData = self._readDataLine()
-            if keepReading:
+            goodLine, newData = self._readDataLine()
+            if goodLine:
                 DC.addDataPoint(newData)
             else:
                 break
@@ -438,6 +439,8 @@ class DataContainer(object):
         return string
 
     def addDataPoint(self,newData):
+
+        print(newData)
 
         if len(newData) == self.numberOfDataField:
             if self.dataArray.shape[0] == self.numberOfDataPoint:
