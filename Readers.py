@@ -67,20 +67,6 @@ class Reader(object):
         
         return bool(line), newData
 
-    def interpretDataLine(self,splitedLine):
-
-        newData = np.zeros((len(self.fieldNameList),))
-        for iColumn, channel in enumerate(self.fieldNameList):
-            columnNumber = self.fieldColumnDict[channel]
-            try:
-                newData[iColumn] = float(splitedLine[columnNumber])
-            except:
-                pass
-
-        return newData
-
-        # self.dataContainer
-
     def _readData(self):
 
         DC = self._newDataContainer()
@@ -93,6 +79,18 @@ class Reader(object):
                 break
 
         return DC
+
+    def interpretDataLine(self,splitedLine):
+
+        newData = np.zeros((len(self.fieldNameList),))
+        for iColumn, channel in enumerate(self.fieldNameList):
+            columnNumber = self.fieldColumnDict[channel]
+            try:
+                newData[iColumn] = float(splitedLine[columnNumber])
+            except:
+                pass
+
+        return newData
 
 
 
@@ -440,8 +438,6 @@ class DataContainer(object):
 
     def addDataPoint(self,newData):
 
-        print(newData)
-
         if len(newData) == self.numberOfDataField:
             if self.dataArray.shape[0] == self.numberOfDataPoint:
                 self._extendChunk()
@@ -480,6 +476,14 @@ class DataContainer(object):
     def getArray(self):
 
         return self.dataArray[:self.numberOfDataPoint,:]
+
+    def getFieldNameList(self):
+
+        return self.fieldNameList
+
+    def getFieldUnitList(self):
+
+        return self.unitList
 
     def getFieldIndex(self,fieldName):
 
