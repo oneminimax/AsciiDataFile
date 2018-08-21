@@ -9,6 +9,8 @@ class Reader(object):
 
     def read(self,filePath):
 
+        print('read')
+
         self._openFile(filePath)
         self._readHeader()
 
@@ -62,7 +64,6 @@ class Reader(object):
         if len(splitedLine) >= len(self.fieldNameList):
             newData = self.interpretDataLine(splitedLine)
         else:
-            line = False
             newData = None
         
         return bool(line), newData
@@ -72,9 +73,10 @@ class Reader(object):
         DC = self._newDataContainer()
     
         while True:
-            goodLine, newData = self._readDataLine()
-            if goodLine:
-                DC.addDataPoint(newData)
+            keepreading, newData = self._readDataLine()
+            if keepreading:
+                if isinstance(newData,np.ndarray):
+                    DC.addDataPoint(newData)
             else:
                 break
 

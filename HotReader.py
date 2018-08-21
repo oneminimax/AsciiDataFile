@@ -4,7 +4,7 @@ class HotReader():
         self.reader = reader
         self.filePath = filePath
 
-        self.dataContainer = reader.read(filePath)
+        self.dataContainer = self.reader.read(filePath)
 
     def readDataLine(self):
 
