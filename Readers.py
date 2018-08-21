@@ -15,9 +15,9 @@ class Reader(object):
         self.fieldNameList, self.unitList, self.columnNumber = self.defineFieldUnitColumn()
         self._initDataInterpret()
         
-        self.DC = self._readData()
+        DC = self._readData()
 
-        return self.DC
+        return DC
     
     def __str__(self):
 
