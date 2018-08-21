@@ -9,8 +9,6 @@ class Reader(object):
 
     def read(self,filePath):
 
-        print('read')
-
         self._openFile(filePath)
         self._readHeader()
 
@@ -73,11 +71,14 @@ class Reader(object):
         DC = self._newDataContainer()
     
         while True:
-            keepreading, newData = self._readDataLine()
-            if keepreading:
-                if isinstance(newData,np.ndarray):
-                    DC.addDataPoint(newData)
-            else:
+            try:
+                keepreading, newData = self._readDataLine()
+                if keepreading:
+                    if isinstance(newData,np.ndarray):
+                        DC.addDataPoint(newData)
+                else:
+                    break
+            except:
                 break
 
         return DC
@@ -115,6 +116,14 @@ class GenericDataReader(Reader):
 
         for n in range(self._nbHeadLine):
             headerLines.append(self.fId.readline())
+
+# class AcquisXDDataFileReader(Reader):
+#     separator = '\t'
+
+#     def _readHeader(self):
+
+
+
 
 class MDDataFileReader(Reader):
     separator = ','
@@ -210,9 +219,15 @@ class PPMSResistivityDataReader(Reader):
 
     separator = ','
 
-    def __init__(self,sampleNumber = 0):
-        self.sampleNumber = sampleNumber
+    def __init__(self):
+        
         Reader.__init__(self)
+
+    def read(self,filePath,sampleNumber = 0):
+
+        self.sampleNumber = sampleNumber
+
+        return Reader.read(self,filePath)
         
 
     def _readHeader(self):
