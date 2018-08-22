@@ -71,11 +71,14 @@ class Reader(object):
         DC = self._newDataContainer()
     
         while True:
-            keepreading, newData = self._readDataLine()
-            if keepreading:
-                if isinstance(newData,np.ndarray):
-                    DC.addDataPoint(newData)
-            else:
+            try:
+                keepreading, newData = self._readDataLine()
+                if keepreading:
+                    if isinstance(newData,np.ndarray):
+                        DC.addDataPoint(newData)
+                else:
+                    break
+            except:
                 break
 
         return DC
@@ -113,6 +116,14 @@ class GenericDataReader(Reader):
 
         for n in range(self._nbHeadLine):
             headerLines.append(self.fId.readline())
+
+# class AcquisXDDataFileReader(Reader):
+#     separator = '\t'
+
+#     def _readHeader(self):
+
+
+
 
 class MDDataFileReader(Reader):
     separator = ','
@@ -213,6 +224,7 @@ class PPMSResistivityDataReader(Reader):
         Reader.__init__(self)
 
     def read(self,filePath,sampleNumber = 0):
+      
         self.sampleNumber = sampleNumber
 
         return Reader.read(self,filePath)
@@ -424,107 +436,3 @@ class DataContainer(object):
             newDC.numberOfDataPoint = self.numberOfDataPoint + other.numberOfDataPoint
 
             return newDC
-
-        # print()
-
-# import numpy as np
-
-# class DataContainer(object):
-#     chunkSize = 3
-#     def __init__(self,fieldNameList = list(),unitList = list(),numberOfDataField = 0):
-
-#         if len(fieldNameList) > 0:
-#             self.numberOfDataField = len(fieldNameList)
-#             self.fieldNameList = fieldNameList
-#         elif len(unitList) > 0:
-#             self.numberOfDataField = len(unitList)
-#             self.fieldNameList = self._genericDataFieldNameList()
-#         elif numberOfDataField > 0:
-#             self.numberOfDataField = numberOfDataField
-#             self.fieldNameList = self._genericDataFieldNameList()
-
-#         if len(unitList) == self.numberOfDataField:
-#             self.unitList = unitList
-#         else:
-#             self.unitList = self._genericUnitList()
-
-#         self.dataArray = np.empty((self.chunkSize,self.numberOfDataField))
-#         self.numberOfDataPoint = 0
-
-#     def __str__(self):
-
-#         string = ''
-#         for fieldName in self.fieldNameList:
-#             string += fieldName + "\n"
-#         string += "number of data point = {0:d}".format(self.numberOfDataPoint)
-
-#         return string
-
-#     def addDataPoint(self,newData):
-
-#         if len(newData) == self.numberOfDataField:
-#             if self.dataArray.shape[0] == self.numberOfDataPoint:
-#                 self._extendChunk()
-#             self.dataArray[self.numberOfDataPoint,:] = newData
-#             self.numberOfDataPoint += 1
-#         else:
-#             raise ValueError('New Data Length ({0:d}) is not conform to the number of data fields ({1:d}).'.format(len(newData),self.numberOfDataField))
-
-#     def _genericDataFieldNameList(self):
-
-#         fieldNameList = list()
-#         for i in range(self.numberOfDataField):
-#             fieldNameList.append('Data Field {0:d}'.format(i+1))
-
-#         return fieldNameList
-
-#     def _genericUnitList(self):
-#         unitList = list()
-#         for i in range(self.numberOfDataField):
-#             unitList.append('a.u.')
-
-#         return unitList
-
-#     def _extendChunk(self):
-
-#         newDataArray = np.empty((self.numberOfDataPoint+self.chunkSize,self.numberOfDataField))
-#         newDataArray[:self.numberOfDataPoint,:] = self.dataArray
-#         self.dataArray = newDataArray
-
-#     def crop(self):
-
-#         newDataArray = np.empty((self.numberOfDataPoint,self.numberOfDataField))
-#         newDataArray = self.dataArray[:self.numberOfDataPoint,:]
-#         self.dataArray = newDataArray
-
-#     def getArray(self):
-
-#         return self.dataArray[:self.numberOfDataPoint,:]
-
-#     def getFieldNameList(self):
-
-#         return self.fieldNameList
-
-#     def getFieldUnitList(self):
-
-#         return self.unitList
-
-#     def getFieldIndex(self,fieldName):
-
-#         return self.fieldNameList.index(fieldName)
-
-#     def getFieldByIndex(self,index):
-
-#         return self.dataArray[:self.numberOfDataPoint,index]
-
-#     def getFieldByName(self,fieldName):
-
-#         index = self.getFieldIndex(fieldName)
-#         return self.getFieldByIndex(index)
-
-#     def getFieldUnit(self,fieldName):
-
-#         index = self.getFieldIndex(fieldName)
-#         return self.unitList[index]
-
-
