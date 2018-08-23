@@ -117,14 +117,6 @@ class GenericDataReader(Reader):
         for n in range(self._nbHeadLine):
             headerLines.append(self.fId.readline())
 
-# class AcquisXDDataFileReader(Reader):
-#     separator = '\t'
-
-#     def _readHeader(self):
-
-
-
-
 class MDDataFileReader(Reader):
     separator = ','
 
@@ -334,6 +326,8 @@ class DataContainer(object):
     chunkSize = 3
     def __init__(self,fieldNameList = list(),unitList = list(),numberOfDataField = 0):
 
+        
+
         if len(fieldNameList) > 0:
             self.numberOfDataField = len(fieldNameList)
             self.fieldNameList = fieldNameList
@@ -343,6 +337,9 @@ class DataContainer(object):
         elif numberOfDataField > 0:
             self.numberOfDataField = numberOfDataField
             self.fieldNameList = self._genericDataFieldNameList()
+        else:
+            self.numberOfDataField = 0
+            self.fieldNameList = []
 
         if len(unitList) == self.numberOfDataField:
             self.unitList = unitList
@@ -370,6 +367,22 @@ class DataContainer(object):
             self.numberOfDataPoint += 1
         else:
             raise ValueError('New Data Length ({0:d}) is not conform to the number of data fields ({1:d}).'.format(len(newData),self.numberOfDataField))
+
+    def addDataField(self,fieldName,unit,data):
+
+        if self.numberOfDataField == 0:
+            self.fieldNameList.append(fieldName)
+            self.unitList.append(unit)
+            self.numberOfDataField += 1
+            self.dataArray = np.zeros((len(data),1))
+            self.dataArray = np.atleast_2d(data).T
+            self.numberOfDataPoint = self.dataArray.shape[0]
+        else:
+            if len(data) == self.dataArray.shape[0]:
+                self.fieldNameList.append(fieldName)
+                self.unitList.append(unit)
+                self.numberOfDataField += 1
+                self.dataArray = np.concatenate((self.dataArray,np.atleast_2d(data).T),axis = 1)
 
     def _genericDataFieldNameList(self):
 
@@ -432,7 +445,24 @@ class DataContainer(object):
 
         if set(self.getFieldNameList()) == set(other.getFieldNameList()):
             newDC = DataContainer(fieldNameList = self.getFieldNameList(),unitList = self.getFieldUnitList())
-            newDC.dataArray = np.concatenate((self.dataArray[:self.numberOfDataPoint,:], other.dataArray[:other.numberOfDataPoint,:]))
-            newDC.numberOfDataPoint = self.numberOfDataPoint + other.numberOfDataPoint
+            newDC.dataArray = np.concatenate((self.dataArray[:self.numberOfDataPoint,:], other.dataArray[:other.numberOfDataPoint,:]),0)
+            newDC.numberOfDataPoint = newDC.dataArray.shape[0]
 
             return newDC
+
+    def extract(self,mask,delete = False):
+
+        newDC = DataContainer(fieldNameList = self.getFieldNameList(),unitList = self.getFieldUnitList())
+        newDC.dataArray = self.dataArray[mask,:]
+        newDC.numberOfDataPoint = newDC.dataArray.shape[0]
+
+        if delete:
+            self.crop()
+            self.dataArray = self.dataArray[mask == False,:]
+            self.numberOfDataPoint = self.dataArray.shape[0]
+
+        return newDC
+
+
+
+        
