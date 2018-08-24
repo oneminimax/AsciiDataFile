@@ -324,7 +324,7 @@ class PPMSACMSDataReader(Reader):
 
 class DataContainer(object):
     chunkSize = 3
-    def __init__(self,fieldNameList = list(),unitList = list(),numberOfDataField = 0):
+    def __init__(self,fieldNameList = list(),unitList = list(),numberOfDataField = 0,tag = ''):
 
         
 
@@ -348,6 +348,7 @@ class DataContainer(object):
 
         self.dataArray = np.empty((self.chunkSize,self.numberOfDataField))
         self.numberOfDataPoint = 0
+        self.tag = tag
 
     def __str__(self):
 
@@ -357,6 +358,10 @@ class DataContainer(object):
         string += "number of data point = {0:d}".format(self.numberOfDataPoint)
 
         return string
+
+    def setTag(self,tag):
+
+        self.tag = tag
 
     def addDataPoint(self,newData):
 
@@ -378,11 +383,13 @@ class DataContainer(object):
             self.dataArray = np.atleast_2d(data).T
             self.numberOfDataPoint = self.dataArray.shape[0]
         else:
-            if len(data) == self.dataArray.shape[0]:
+            if len(data) == self.numberOfDataPoint:
                 self.fieldNameList.append(fieldName)
                 self.unitList.append(unit)
                 self.numberOfDataField += 1
-                self.dataArray = np.concatenate((self.dataArray,np.atleast_2d(data).T),axis = 1)
+                newColumn = np.zeros(self.dataArray.shape[0])
+                newColumn[:self.numberOfDataPoint] = data
+                self.dataArray = np.concatenate((self.dataArray,np.atleast_2d(newColumn).T),axis = 1)
 
     def _genericDataFieldNameList(self):
 
