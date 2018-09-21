@@ -128,8 +128,8 @@ class MDDataFileReader(Reader):
             line = self.fId.readline()
             if not line:
                 break
-            m1 = re.match("\[Header\]",line)
-            m2 = re.match("\[Instrument List\]",line)
+            m1 = re.match(r"\[Header\]",line)
+            m2 = re.match(r"\[Instrument List\]",line)
             if m1 or m2:
                 break
 
@@ -137,8 +137,8 @@ class MDDataFileReader(Reader):
             line = self.fId.readline()
             if not line:
                 break
-            m1 = re.match("\[Header end\]",line)
-            m2 = re.match("\[Instrument List end\]",line)
+            m1 = re.match(r"\[Header end\]",line)
+            m2 = re.match(r"\[Instrument List end\]",line)
             if m1 or m2:
                 break
             else:
@@ -150,10 +150,10 @@ class MDDataFileReader(Reader):
             m = re.match("Column .. : (.+)",line)
             if m:
                 subLine = m.group(1)
-                m1 = re.match("([\w -]+)\t(.+)$",subLine)
-                m2 = re.match("([\w -]+) in (\w+)",subLine)
+                m1 = re.match(r"([\w -]+)\t(.+)$",subLine)
+                m2 = re.match(r"([\w -]+) in (\w+)",subLine)
                 if m2:
-                    m22 = re.match("(.+)\s+(\w+)\s+(\w+)$",m2.group(1).strip())
+                    m22 = re.match(r"(.+)\s+(\w+)\s+(\w+)$",m2.group(1).strip())
                     fieldNameList.append(m22.group(2).strip())
                     unitList.append(m2.group(2).strip())
                 elif m1:
@@ -178,7 +178,7 @@ class SQUIDDataReader(Reader):
 
         while True:
             line = self._readLine()
-            if self._lineMatch(line,"\[Data\]"):
+            if self._lineMatch(line,r"\[Data\]"):
                 break
 
     def defineFieldUnitColumn(self):

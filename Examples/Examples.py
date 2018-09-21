@@ -8,11 +8,26 @@ def read_PPMS_ACMS_dataFile():
     dataFile = 'PPMS_ACMS_dataFile.dat'
 
     reader = Reader()
-    DC = reader.read(path.join(dataPath,dataFile))
-    print(DC)
+    dataContainer = reader.read(path.join(dataPath,dataFile))
+    print(dataContainer)
 
-    X = DC.getFieldByName('magnetic field')
-    Y = DC.getFieldByName('magnetization dc')
+    X = dataContainer.getFieldByName('magnetic field')
+    Y = dataContainer.getFieldByName('magnetization dc')
+
+def read_MD_dataFile():
+
+    from AsciiDataFile.Readers import MDDataFileReader as Reader
+
+    dataPath = 'data/'
+    dataFile = '20180711_44.0K.txt'
+
+    reader = Reader()
+
+    dataContainer = reader.read(path.join(dataPath,dataFile))
+    print(dataContainer)
+
+    X = dataContainer.getFieldByName('magneticField')
+    Y = dataContainer.getFieldByName('VH')
 
 def read_XRD_generic_dataFile():
 
@@ -23,11 +38,11 @@ def read_XRD_generic_dataFile():
 
     reader = Reader(' ',['angle','signal'])
 
-    DC = reader.read(path.join(dataPath,dataFile))
-    print(DC)
+    dataContainer = reader.read(path.join(dataPath,dataFile))
+    print(dataContainer)
 
-    X = DC.getFieldByName('angle')
-    Y = DC.getFieldByName('signal')
+    X = dataContainer.getFieldByName('angle')
+    Y = dataContainer.getFieldByName('signal')
 
 def readAcquisXD():
 
@@ -38,9 +53,10 @@ def readAcquisXD():
 
     reader = Reader('\t',['temperature','champ','V1','V2','I'])
 
-    DC = reader.read(path.join(dataPath,dataFile))
+    dataContainer = reader.read(path.join(dataPath,dataFile))
 
 
 # read_PPMS_ACMS_dataFile()
+read_MD_dataFile()
 # read_XRD_generic_dataFile()
 # readAcquisXD()
