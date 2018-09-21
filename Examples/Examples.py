@@ -14,8 +14,6 @@ def read_PPMS_ACMS_dataFile():
     X = DC.getFieldByName('magnetic field')
     Y = DC.getFieldByName('magnetization dc')
 
-    # print(Y)
-
 def read_XRD_generic_dataFile():
 
     from AsciiDataFile.Readers import GenericDataReader as Reader
@@ -45,4 +43,4 @@ def readAcquisXD():
 
 # read_PPMS_ACMS_dataFile()
 # read_XRD_generic_dataFile()
-readAcquisXD()
+# readAcquisXD()

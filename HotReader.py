@@ -12,6 +12,8 @@ class HotReader():
         if goodLine:
             self.dataContainer.addDataPoint(newData)
 
+        return goodLine
+
     def getFilePath(self):
 
         return self.filePath

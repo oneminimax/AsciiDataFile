@@ -459,12 +459,14 @@ class DataContainer(object):
 
     def extract(self,mask,delete = False):
 
+        self.crop()
+
         newDC = DataContainer(fieldNameList = self.getFieldNameList(),unitList = self.getFieldUnitList())
         newDC.dataArray = self.dataArray[mask,:]
         newDC.numberOfDataPoint = newDC.dataArray.shape[0]
 
         if delete:
-            self.crop()
+            
             self.dataArray = self.dataArray[mask == False,:]
             self.numberOfDataPoint = self.dataArray.shape[0]
 
