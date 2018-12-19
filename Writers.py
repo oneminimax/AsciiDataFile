@@ -4,9 +4,10 @@ import time
 import re
 
 class Writer(object):
-    def __init__(self,fileName,autoNumbering = True):
+    def __init__(self,fileName,autoNumbering = True,separator = ','):
         self.fileName = fileName
         self.autoNumbering = autoNumbering
+        self.separator = separator
 
         self._openFile()
 
@@ -48,10 +49,10 @@ class Writer(object):
 
         lineStr = ''
         for j in range(len(newData)):
-            lineStr += "{0:+10.8e}, ".format(newData[j])
+            lineStr += "{0:+10.8e}{1:s}".format(newData[j],self.separator)
 
         if lineStr:
-            self.fId.write(lineStr[:-2] + "\n")
+            self.fId.write(lineStr[:-len(self.separator)] + "\n")
             self.fId.flush()
 
 class MDDataFileWriter(Writer):
@@ -69,4 +70,10 @@ class MDDataFileWriter(Writer):
 
         self.fId.write("[Header end]\n\n")
         self.fId.flush()
+
+    def writeDataContainer(self,DC):
+
+        self.writeHeader(DC.fieldNameList,DC.unitList)
+
+        self.writeData(DC.dataArray)
 
