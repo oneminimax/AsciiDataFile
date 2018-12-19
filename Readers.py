@@ -323,10 +323,10 @@ class PPMSACMSDataReader(Reader):
         return fieldNameList, fieldUnitList, columnNumber
 
 class DataContainer(object):
-    chunkSize = 3
+    
     def __init__(self,fieldNameList = list(),unitList = list(),numberOfDataField = 0,tag = ''):
 
-        
+        self.chunkSize = 3
 
         if len(fieldNameList) > 0:
             self.numberOfDataField = len(fieldNameList)
@@ -349,6 +349,7 @@ class DataContainer(object):
         self.dataArray = np.empty((self.chunkSize,self.numberOfDataField))
         self.numberOfDataPoint = 0
         self.tag = tag
+        
 
     def __str__(self):
 
@@ -358,6 +359,20 @@ class DataContainer(object):
         string += "number of data point = {0:d}".format(self.numberOfDataPoint)
 
         return string
+
+    def __getitem__(self,i):
+
+        self.crop()
+
+        newDC = self.newCopy()
+        newDC.dataArray = self.dataArray[i,:]
+        newDC.numberOfDataPoint = newDC.dataArray.shape[0]
+
+        return newDC
+
+    def newCopy(self):
+
+        return DataContainer(fieldNameList = self.getFieldNameList().copy(),unitList = self.getFieldUnitList().copy())
 
     def setTag(self,tag):
 
@@ -451,7 +466,7 @@ class DataContainer(object):
     def merge(self,other):
 
         if set(self.getFieldNameList()) == set(other.getFieldNameList()):
-            newDC = DataContainer(fieldNameList = self.getFieldNameList(),unitList = self.getFieldUnitList())
+            newDC = self.newCopy()
             newDC.dataArray = np.concatenate((self.dataArray[:self.numberOfDataPoint,:], other.dataArray[:other.numberOfDataPoint,:]),0)
             newDC.numberOfDataPoint = newDC.dataArray.shape[0]
 
@@ -461,7 +476,7 @@ class DataContainer(object):
 
         self.crop()
 
-        newDC = DataContainer(fieldNameList = self.getFieldNameList(),unitList = self.getFieldUnitList())
+        newDC = self.newCopy()
         newDC.dataArray = self.dataArray[mask,:]
         newDC.numberOfDataPoint = newDC.dataArray.shape[0]
 
