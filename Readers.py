@@ -180,6 +180,7 @@ class SQUIDDataReader(Reader):
             line = self._readLine()
             if self._lineMatch(line,r"\[Data\]"):
                 break
+        line = self._readLine()
 
     def defineFieldUnitColumn(self):
 
