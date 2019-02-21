@@ -7,75 +7,75 @@ class Reader(object):
 
         pass
 
-    def read(self,filePath):
+    def read(self,file_path):
 
-        self._openFile(filePath)
-        self._readHeader()
+        self._open_file(file_path)
+        self._read_header()
 
-        self.fieldNameList, self.unitList, self.columnNumber = self.defineFieldUnitColumn()
-        self._initDataInterpret()
+        self.field_names, self.units, self.column_number = self.define_field_unit_column()
+        self._init_data_interpret()
         
-        DC = self._readData()
+        DC = self._read_data()
 
         return DC
     
     def __str__(self):
 
-        return str(self.getFieldNameList())
+        return str(self.get_field_names())
 
-    def _openFile(self,filePath):
+    def _open_file(self,file_path):
         try:
-            self.fId = open(filePath,'r')
+            self.f_id = open(file_path,'r')
 
         except IOError:
-            print("Cannot open {0:s}".format(filePath))
+            print("Cannot open {0:s}".format(file_path))
             raise
 
-    def _readHeader(self):
+    def _read_header(self):
 
         pass
 
-    def _readLine(self):
+    def _read_line(self):
 
-        return self.fId.readline()
+        return self.f_id.readline()
 
-    def _lineMatch(self,line,patern):
+    def _line_match(self,line,patern):
 
         return bool(re.match(patern,line))
 
-    def _newDataContainer(self):
+    def _new_data_container(self):
         
-        return DataContainer(fieldNameList = self.fieldNameList,unitList = self.unitList)
+        return DataContainer(field_names = self.field_names,units = self.units)
 
-    def _initDataInterpret(self):
+    def _init_data_interpret(self):
 
-        fieldColumnDict = dict()
-        for i, fieldName in enumerate(self.fieldNameList):
-            fieldColumnDict[fieldName] = self.columnNumber[i]
+        field_column_dict = dict()
+        for i, field_name in enumerate(self.field_names):
+            field_column_dict[field_name] = self.column_number[i]
 
-        self.fieldColumnDict = fieldColumnDict
+        self.field_column_dict = field_column_dict
 
-    def _readDataLine(self):
+    def _read_data_line(self):
 
-        line = self._readLine()
-        splitedLine = re.split(self.separator,line)
-        if len(splitedLine) >= len(self.fieldNameList):
-            newData = self.interpretDataLine(splitedLine)
+        line = self._read_line()
+        splited_line = re.split(self.separator,line)
+        if len(splited_line) >= len(self.field_names):
+            new_data = self.interpret_data_line(splited_line)
         else:
-            newData = None
+            new_data = None
         
-        return bool(line), newData
+        return bool(line), new_data
 
-    def _readData(self):
+    def _read_data(self):
 
-        DC = self._newDataContainer()
+        DC = self._new_data_container()
     
         while True:
             try:
-                keepreading, newData = self._readDataLine()
-                if keepreading:
-                    if isinstance(newData,np.ndarray):
-                        DC.addDataPoint(newData)
+                keep_reading, new_data = self._read_data_line()
+                if keep_reading:
+                    if isinstance(new_data,np.ndarray):
+                        DC.add_data_point(new_data)
                 else:
                     break
             except:
@@ -83,49 +83,49 @@ class Reader(object):
 
         return DC
 
-    def interpretDataLine(self,splitedLine):
+    def interpret_data_line(self,splited_line):
 
-        newData = np.zeros((len(self.fieldNameList),))
-        for iColumn, channel in enumerate(self.fieldNameList):
-            columnNumber = self.fieldColumnDict[channel]
+        new_data = np.zeros((len(self.field_names),))
+        for i_column, channel in enumerate(self.field_names):
+            column_number = self.field_column_dict[channel]
             try:
-                newData[iColumn] = float(splitedLine[columnNumber])
+                new_data[i_column] = float(splited_line[column_number])
             except:
                 pass
 
-        return newData
+        return new_data
 
 
 
 class GenericDataReader(Reader):
-    def __init__(self,separator,fieldNameList,unitList = list(),nbHeadLine = 0):
+    def __init__(self,separator,field_names,units = list(),nb_head_line = 0):
         
         self.separator = separator
-        self._fieldNameList = fieldNameList
-        self._unitList = unitList
-        self._nbHeadLine = nbHeadLine
+        self._field_names = field_names
+        self._units = units
+        self._nb_head_line = nb_head_line
 
         Reader.__init__(self)
 
-    def defineFieldUnitColumn(self):
+    def define_field_unit_column(self):
 
-        return self._fieldNameList, self._unitList, list(range(len(self._fieldNameList)))
+        return self._field_names, self._units, list(range(len(self._field_names)))
 
-    def _readHeader(self):
-        headerLines = list()
+    def _read_header(self):
+        header_lines = list()
 
-        for n in range(self._nbHeadLine):
-            headerLines.append(self.fId.readline())
+        for n in range(self._nb_head_line):
+            header_lines.append(self.f_id.readline())
 
 class MDDataFileReader(Reader):
     separator = ','
 
-    def _readHeader(self):
+    def _read_header(self):
 
-        headerLines = list()
+        header_lines = list()
 
         while True:
-            line = self.fId.readline()
+            line = self.f_id.readline()
             if not line:
                 break
             m1 = re.match(r"\[Header\]",line)
@@ -134,7 +134,7 @@ class MDDataFileReader(Reader):
                 break
 
         while True:
-            line = self.fId.readline()
+            line = self.f_id.readline()
             if not line:
                 break
             m1 = re.match(r"\[Header end\]",line)
@@ -142,11 +142,11 @@ class MDDataFileReader(Reader):
             if m1 or m2:
                 break
             else:
-                headerLines.append(line.strip())
+                header_lines.append(line.strip())
 
-        fieldNameList = list()
-        unitList = list()
-        for line in headerLines:
+        field_names = list()
+        units = list()
+        for line in header_lines:
             m = re.match("Column .. : (.+)",line)
             if m:
                 subLine = m.group(1)
@@ -154,37 +154,37 @@ class MDDataFileReader(Reader):
                 m2 = re.match(r"([\w -]+) in (\w+)",subLine)
                 if m2:
                     m22 = re.match(r"(.+)\s+(\w+)\s+(\w+)$",m2.group(1).strip())
-                    fieldNameList.append(m22.group(2).strip())
-                    unitList.append(m2.group(2).strip())
+                    field_names.append(m22.group(2).strip())
+                    units.append(m2.group(2).strip())
                 elif m1:
-                    fieldNameList.append(m1.group(1).strip())
-                    unitList.append(m1.group(2).strip())
+                    field_names.append(m1.group(1).strip())
+                    units.append(m1.group(2).strip())
                 else:
-                    fieldNameList.append(subLine.strip())
-                    unitList.append('u.a.')
+                    field_names.append(subLine.strip())
+                    units.append('u.a.')
 
-        self._fieldNameList = fieldNameList
-        self._unitList = unitList
+        self._field_names = field_names
+        self._units = units
 
-    def defineFieldUnitColumn(self):
+    def define_field_unit_column(self):
 
-        return self._fieldNameList, self._unitList, list(range(len(self._fieldNameList)))
+        return self._field_names, self._units, list(range(len(self._field_names)))
 
 class SQUIDDataReader(Reader):
 
     separator = ','
 
-    def _readHeader(self):
+    def _read_header(self):
 
         while True:
-            line = self._readLine()
-            if self._lineMatch(line,r"\[Data\]"):
+            line = self._read_line()
+            if self._line_match(line,r"\[Data\]"):
                 break
-        line = self._readLine()
+        line = self._read_line()
 
-    def defineFieldUnitColumn(self):
+    def define_field_unit_column(self):
 
-        fieldNameList = [
+        field_names = [
             'time',
             'magnetic field',
             'temperature',
@@ -194,7 +194,7 @@ class SQUIDDataReader(Reader):
             'long reg fit',
             'long percent error'
             ]
-        fieldUnitList = [
+        field_units = [
             's',
             'Oe',
             'K',
@@ -204,9 +204,9 @@ class SQUIDDataReader(Reader):
             None,
             '%'
             ]
-        columnNumber = [0,2,3,4,5,6,7,8]
+        column_number = [0,2,3,4,5,6,7,8]
 
-        return fieldNameList, fieldUnitList, columnNumber
+        return field_names, field_units, column_number
 
 class PPMSResistivityDataReader(Reader):
 
@@ -216,78 +216,77 @@ class PPMSResistivityDataReader(Reader):
         
         Reader.__init__(self)
 
-    def read(self,filePath,sampleNumber = 0):
+    def read(self,file_path,sample_number = 0):
       
-        self.sampleNumber = sampleNumber
+        self.sample_number = sample_number
 
-        return Reader.read(self,filePath)
+        return Reader.read(self,file_path)
         
-
-    def _readHeader(self):
+    def _read_header(self):
 
         while True:
-            line = self._readLine()
-            if self._lineMatch(line,"\[Data\]"):
+            line = self._read_line()
+            if self._line_match(line,"\[Data\]"):
                 break
-        line = self._readLine()
+        line = self._read_line()
 
-    def defineFieldUnitColumn(self):
+    def define_field_unit_column(self):
 
-        fieldNameList = [
+        field_names = [
             'time',
             'temperature',
             'magnetic field',
             'sample position'
             ]
-        fieldUnitList = [
+        field_units = [
             's',
             'K',
             'Oe',
             'deg',
             ]
-        columnNumber = [1,3,4,5]
+        column_number = [1,3,4,5]
 
-        if self.sampleNumber == 0:
+        if self.sample_number == 0:
             for i in range(1,4):
-                fieldNameList.append('resistance{0:d}'.format(i))
-                fieldUnitList.append('ohm')
-                columnNumber.append(4 + 2*i)
-                fieldNameList.append('current{0:d}'.format(i))
-                fieldUnitList.append('uA')
-                columnNumber.append(5 + 2*i)
+                field_names.append('resistance{0:d}'.format(i))
+                field_units.append('ohm')
+                column_number.append(4 + 2*i)
+                field_names.append('current{0:d}'.format(i))
+                field_units.append('uA')
+                column_number.append(5 + 2*i)
 
-        elif self.sampleNumber in [1,2,3]:
-            fieldNameList.append('resistance')
-            fieldUnitList.append('ohm')
-            columnNumber.append(4 + 2*self.sampleNumber)
-            fieldNameList.append('current')
-            fieldUnitList.append('uA')
-            columnNumber.append(5 + 2*self.sampleNumber)
+        elif self.sample_number in [1,2,3]:
+            field_names.append('resistance')
+            field_units.append('ohm')
+            column_number.append(4 + 2*self.sample_number)
+            field_names.append('current')
+            field_units.append('uA')
+            column_number.append(5 + 2*self.sample_number)
 
-        return fieldNameList, fieldUnitList, columnNumber
+        return field_names, field_units, column_number
 
 class PPMSACMSDataReader(Reader):
 
     separator = ','
 
-    def __init__(self,numberOfHarmonics = 1):
+    def __init__(self,number_of_harmonics = 1):
 
-        self.numberOfHarmonics = numberOfHarmonics
+        self.number_of_harmonics = number_of_harmonics
 
         Reader.__init__(self)
         
 
-    def _readHeader(self):
+    def _read_header(self):
 
         while True:
-            line = self._readLine()
-            if self._lineMatch(line,"\[Data\]"):
+            line = self._read_line()
+            if self._line_match(line,"\[Data\]"):
                 break
-        line = self._readLine()
+        line = self._read_line()
 
-    def defineFieldUnitColumn(self):
+    def define_field_unit_column(self):
 
-        fieldNameList = [
+        field_names = [
             'time',
             'temperature',
             'magnetic field',
@@ -296,7 +295,7 @@ class PPMSACMSDataReader(Reader):
             'magnetization dc',
             'magnetization std'
             ]
-        fieldUnitList = [
+        field_units = [
             's',
             'K',
             'Oe',
@@ -305,59 +304,59 @@ class PPMSACMSDataReader(Reader):
             'emu',
             'emu'
             ]
-        columnNumber = [1,2,3,4,5,6,7]
+        column_number = [1,2,3,4,5,6,7]
 
-        for har in range(self.numberOfHarmonics):
-            fieldNameList.append("magnetizationReal[{0:d}]".format(har+1))
-            fieldUnitList.append('')
-            columnNumber.append(8 + 4 * har)
-            fieldNameList.append("magnetizationImag[{0:d}]".format(har+1))
-            fieldUnitList.append('')
-            columnNumber.append(9 + 4 * har)
-            fieldNameList.append("magnetizationAbs[{0:d}]".format(har+1))
-            fieldUnitList.append('')
-            columnNumber.append(10 + 4 * har)
-            fieldNameList.append("magnetizationPhase[{0:d}]".format(har+1))
-            fieldUnitList.append('')
-            columnNumber.append(11 + 4 * har)
+        for har in range(self.number_of_harmonics):
+            field_names.append("magnetizationReal[{0:d}]".format(har+1))
+            field_units.append('')
+            column_number.append(8 + 4 * har)
+            field_names.append("magnetizationImag[{0:d}]".format(har+1))
+            field_units.append('')
+            column_number.append(9 + 4 * har)
+            field_names.append("magnetizationAbs[{0:d}]".format(har+1))
+            field_units.append('')
+            column_number.append(10 + 4 * har)
+            field_names.append("magnetizationPhase[{0:d}]".format(har+1))
+            field_units.append('')
+            column_number.append(11 + 4 * har)
 
-        return fieldNameList, fieldUnitList, columnNumber
+        return field_names, field_units, column_number
 
 class DataContainer(object):
     
-    def __init__(self,fieldNameList = list(),unitList = list(),numberOfDataField = 0,tag = ''):
+    def __init__(self,field_names = list(),units = list(),number_of_data_field = 0,tag = ''):
 
         self.chunkSize = 3
 
-        if len(fieldNameList) > 0:
-            self.numberOfDataField = len(fieldNameList)
-            self.fieldNameList = fieldNameList
-        elif len(unitList) > 0:
-            self.numberOfDataField = len(unitList)
-            self.fieldNameList = self._genericDataFieldNameList()
-        elif numberOfDataField > 0:
-            self.numberOfDataField = numberOfDataField
-            self.fieldNameList = self._genericDataFieldNameList()
+        if len(field_names) > 0:
+            self.number_of_data_field = len(field_names)
+            self.field_names = field_names
+        elif len(units) > 0:
+            self.number_of_data_field = len(units)
+            self.field_names = self._generic_data_field_names()
+        elif number_of_data_field > 0:
+            self.number_of_data_field = number_of_data_field
+            self.field_names = self._generic_data_field_names()
         else:
-            self.numberOfDataField = 0
-            self.fieldNameList = []
+            self.number_of_data_field = 0
+            self.field_names = []
 
-        if len(unitList) == self.numberOfDataField:
-            self.unitList = unitList
+        if len(units) == self.number_of_data_field:
+            self.units = units
         else:
-            self.unitList = self._genericUnitList()
+            self.units = self._generic_units()
 
-        self.dataArray = np.empty((self.chunkSize,self.numberOfDataField))
-        self.numberOfDataPoint = 0
+        self.data_array = np.empty((self.chunkSize,self.number_of_data_field))
+        self.number_of_data_point = 0
         self.tag = tag
         
 
     def __str__(self):
 
         string = ''
-        for fieldName in self.fieldNameList:
-            string += fieldName + "\n"
-        string += "number of data point = {0:d}".format(self.numberOfDataPoint)
+        for field_name in self.field_names:
+            string += field_name + "\n"
+        string += "number of data point = {0:d}".format(self.number_of_data_point)
 
         return string
 
@@ -365,128 +364,124 @@ class DataContainer(object):
 
         self.crop()
 
-        newDC = self.newCopy()
-        newDC.dataArray = self.dataArray[i,:]
-        newDC.numberOfDataPoint = newDC.dataArray.shape[0]
+        new_dc = self.new_copy()
+        new_dc.data_array = self.data_array[i,:]
+        new_dc.number_of_data_point = new_dc.data_array.shape[0]
 
-        return newDC
+        return new_dc
 
-    def newCopy(self):
+    def new_copy(self):
 
-        return DataContainer(fieldNameList = self.getFieldNameList().copy(),unitList = self.getFieldUnitList().copy())
+        return DataContainer(field_names = self.get_field_names().copy(),units = self.getFieldUnitList().copy())
 
-    def setTag(self,tag):
+    def add_data_point(self,new_data):
 
-        self.tag = tag
-
-    def addDataPoint(self,newData):
-
-        if len(newData) == self.numberOfDataField:
-            if self.dataArray.shape[0] == self.numberOfDataPoint:
-                self._extendChunk()
-            self.dataArray[self.numberOfDataPoint,:] = newData
-            self.numberOfDataPoint += 1
+        if len(new_data) == self.number_of_data_field:
+            if self.data_array.shape[0] == self.number_of_data_point:
+                self._extend_chunk()
+            self.data_array[self.number_of_data_point,:] = new_data
+            self.number_of_data_point += 1
         else:
-            raise ValueError('New Data Length ({0:d}) is not conform to the number of data fields ({1:d}).'.format(len(newData),self.numberOfDataField))
+            raise ValueError('New Data Length ({0:d}) is not conform to the number of data fields ({1:d}).'.format(len(new_data),self.number_of_data_field))
 
-    def addDataField(self,fieldName,unit,data):
+    def add_data_field(self,field_name,unit,data):
 
-        if self.numberOfDataField == 0:
-            self.fieldNameList.append(fieldName)
-            self.unitList.append(unit)
-            self.numberOfDataField += 1
-            self.dataArray = np.zeros((len(data),1))
-            self.dataArray = np.atleast_2d(data).T
-            self.numberOfDataPoint = self.dataArray.shape[0]
+        if self.number_of_data_field == 0:
+            self.field_names.append(field_name)
+            self.units.append(unit)
+            self.number_of_data_field += 1
+            self.data_array = np.zeros((len(data),1))
+            self.data_array = np.atleast_2d(data).T
+            self.number_of_data_point = self.data_array.shape[0]
         else:
-            if len(data) == self.numberOfDataPoint:
-                self.fieldNameList.append(fieldName)
-                self.unitList.append(unit)
-                self.numberOfDataField += 1
-                newColumn = np.zeros(self.dataArray.shape[0])
-                newColumn[:self.numberOfDataPoint] = data
-                self.dataArray = np.concatenate((self.dataArray,np.atleast_2d(newColumn).T),axis = 1)
+            if len(data) == self.number_of_data_point:
+                self.field_names.append(field_name)
+                self.units.append(unit)
+                self.number_of_data_field += 1
+                new_column = np.zeros(self.data_array.shape[0])
+                new_column[:self.number_of_data_point] = data
+                self.data_array = np.concatenate((self.data_array,np.atleast_2d(new_column).T),axis = 1)
 
-    def _genericDataFieldNameList(self):
+    def _generic_data_field_names(self):
 
-        fieldNameList = list()
-        for i in range(self.numberOfDataField):
-            fieldNameList.append('Data Field {0:d}'.format(i+1))
+        field_names = list()
+        for i in range(self.number_of_data_field):
+            field_names.append('Data Field {0:d}'.format(i+1))
 
-        return fieldNameList
+        return field_names
 
-    def _genericUnitList(self):
-        unitList = list()
-        for i in range(self.numberOfDataField):
-            unitList.append('a.u.')
+    def _generic_units(self):
+        units = list()
+        for i in range(self.number_of_data_field):
+            units.append('a.u.')
 
-        return unitList
+        return units
 
-    def _extendChunk(self):
+    def _extend_chunk(self):
 
-        newDataArray = np.empty((self.numberOfDataPoint+self.chunkSize,self.numberOfDataField))
-        newDataArray[:self.numberOfDataPoint,:] = self.dataArray
-        self.dataArray = newDataArray
+        new_data_array = np.empty((self.number_of_data_point+self.chunkSize,self.number_of_data_field))
+        new_data_array[:self.number_of_data_point,:] = self.data_array
+        self.data_array = new_data_array
 
     def crop(self):
 
-        newDataArray = np.empty((self.numberOfDataPoint,self.numberOfDataField))
-        newDataArray = self.dataArray[:self.numberOfDataPoint,:]
-        self.dataArray = newDataArray
+        new_data_array = np.empty((self.number_of_data_point,self.number_of_data_field))
+        new_data_array = self.data_array[:self.number_of_data_point,:]
+        self.data_array = new_data_array
 
     def getArray(self):
 
-        return self.dataArray[:self.numberOfDataPoint,:]
+        return self.data_array[:self.number_of_data_point,:]
 
-    def getFieldNameList(self):
+    def get_field_names(self):
 
-        return self.fieldNameList
+        return self.field_names
 
     def getFieldUnitList(self):
 
-        return self.unitList
+        return self.units
 
-    def getFieldIndex(self,fieldName):
+    def get_field_index(self,field_name):
 
-        return self.fieldNameList.index(fieldName)
+        return self.field_names.index(field_name)
 
-    def getFieldByIndex(self,index):
+    def get_field_by_index(self,index):
 
-        return self.dataArray[:self.numberOfDataPoint,index]
+        return self.data_array[:self.number_of_data_point,index]
 
-    def getFieldByName(self,fieldName):
+    def get_field_by_name(self,field_name):
 
-        index = self.getFieldIndex(fieldName)
-        return self.getFieldByIndex(index)
+        index = self.get_field_index(field_name)
+        return self.get_field_by_index(index)
 
-    def getFieldUnit(self,fieldName):
+    def get_field_unit(self,field_name):
 
-        index = self.getFieldIndex(fieldName)
-        return self.unitList[index]
+        index = self.get_field_index(field_name)
+        return self.units[index]
 
     def merge(self,other):
 
-        if set(self.getFieldNameList()) == set(other.getFieldNameList()):
-            newDC = self.newCopy()
-            newDC.dataArray = np.concatenate((self.dataArray[:self.numberOfDataPoint,:], other.dataArray[:other.numberOfDataPoint,:]),0)
-            newDC.numberOfDataPoint = newDC.dataArray.shape[0]
+        if set(self.get_field_names()) == set(other.get_field_names()):
+            new_dc = self.new_copy()
+            new_dc.data_array = np.concatenate((self.data_array[:self.number_of_data_point,:], other.data_array[:other.number_of_data_point,:]),0)
+            new_dc.number_of_data_point = new_dc.data_array.shape[0]
 
-            return newDC
+            return new_dc
 
     def extract(self,mask,delete = False):
 
         self.crop()
 
-        newDC = self.newCopy()
-        newDC.dataArray = self.dataArray[mask,:]
-        newDC.numberOfDataPoint = newDC.dataArray.shape[0]
+        new_dc = self.new_copy()
+        new_dc.data_array = self.data_array[mask,:]
+        new_dc.number_of_data_point = new_dc.data_array.shape[0]
 
         if delete:
             
-            self.dataArray = self.dataArray[mask == False,:]
-            self.numberOfDataPoint = self.dataArray.shape[0]
+            self.data_array = self.data_array[mask == False,:]
+            self.number_of_data_point = self.data_array.shape[0]
 
-        return newDC
+        return new_dc
 
 
 
