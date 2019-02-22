@@ -4,59 +4,59 @@ def read_PPMS_ACMS_dataFile():
 
     from AsciiDataFile.Readers import PPMSACMSDataReader as Reader
 
-    dataPath = 'data/'
-    dataFile = 'PPMS_ACMS_dataFile.dat'
+    data_path = 'data/'
+    data_file = 'PPMS_ACMS_dataFile.dat'
 
     reader = Reader()
-    dataContainer = reader.read(path.join(dataPath,dataFile))
-    print(dataContainer)
+    data_container = reader.read(path.join(data_path,data_file))
+    print(data_container)
 
-    X = dataContainer.getFieldByName('magnetic field')
-    Y = dataContainer.getFieldByName('magnetization dc')
+    X = data_container.get_field_by_name('magnetic field')
+    Y = data_container.get_field_by_name('magnetization dc')
 
 def read_MD_dataFile():
 
     from AsciiDataFile.Readers import MDDataFileReader as Reader
 
-    dataPath = 'data/'
-    dataFile = '20180711_44.0K.txt'
+    data_path = 'data/'
+    data_file = '20180711_44.0K.txt'
 
     reader = Reader()
 
-    dataContainer = reader.read(path.join(dataPath,dataFile))
-    print(dataContainer)
+    data_container = reader.read(path.join(data_path,data_file))
+    print(data_container)
 
-    X = dataContainer.getFieldByName('magneticField')
-    Y = dataContainer.getFieldByName('VH')
+    X = data_container.get_field_by_name('magneticField')
+    Y = data_container.get_field_by_name('VH')
 
 def read_XRD_generic_dataFile():
 
     from AsciiDataFile.Readers import GenericDataReader as Reader
 
-    dataPath = 'data/'
-    dataFile = 'XRD_T2T_dataFile.dat'
+    data_path = 'data/'
+    data_file = 'XRD_T2T_dataFile.dat'
 
     reader = Reader(' ',['angle','signal'])
 
-    dataContainer = reader.read(path.join(dataPath,dataFile))
-    print(dataContainer)
+    data_container = reader.read(path.join(data_path,data_file))
+    print(data_container)
 
-    X = dataContainer.getFieldByName('angle')
-    Y = dataContainer.getFieldByName('signal')
+    X = data_container.get_field_by_name('angle')
+    Y = data_container.get_field_by_name('signal')
 
 def readAcquisXD():
 
     from AsciiDataFile.Readers import GenericDataReader as Reader
 
-    dataPath = '/Users/oneminimax/Documents/Projets Physique/PCCO 17 Hall and Lin Res/Transport Data/FAB Samples/20180703B/Acquis'
-    dataFile = 'VrhoVH-vs-H-42K-HR.txt'
+    data_path = '/Users/oneminimax/Documents/Projets Physique/PCCO 17 Hall and Lin Res/Transport Data/FAB Samples/20180703B/Acquis'
+    data_file = 'VrhoVH-vs-H-42K-HR.txt'
 
     reader = Reader('\t',['temperature','champ','V1','V2','I'])
 
-    dataContainer = reader.read(path.join(dataPath,dataFile))
+    data_container = reader.read(path.join(data_path,data_file))
 
 
 # read_PPMS_ACMS_dataFile()
-read_MD_dataFile()
-# read_XRD_generic_dataFile()
+# read_MD_dataFile()
+read_XRD_generic_dataFile()
 # readAcquisXD()
