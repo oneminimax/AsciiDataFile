@@ -437,7 +437,7 @@ class DataContainer(object):
 
         return self.field_names
 
-    def getFieldUnitList(self):
+    def get_field_units(self):
 
         return self.units
 

@@ -10,7 +10,7 @@ class HotReader():
 
         good_line, new_data = self.reader._read_data_line()
         if good_line:
-            self.data_container.addDataPoint(new_data)
+            self.data_container.add_data_point(new_data)
 
         return good_line
 

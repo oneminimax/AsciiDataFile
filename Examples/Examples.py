@@ -56,7 +56,7 @@ def readAcquisXD():
     data_container = reader.read(path.join(data_path,data_file))
 
 
-# read_PPMS_ACMS_dataFile()
+read_PPMS_ACMS_dataFile()
 # read_MD_dataFile()
-read_XRD_generic_dataFile()
+# read_XRD_generic_dataFile()
 # readAcquisXD()

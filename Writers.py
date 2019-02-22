@@ -40,7 +40,7 @@ class Writer(object):
 
         self.file_name = new_file_name
 
-    def writeData(self,data_array):
+    def write_data(self,data_array):
 
         for i in range(data_array.shape[0]):
             self.add_data_point(data_array[i])
@@ -57,7 +57,7 @@ class Writer(object):
 
 class MDDataFileWriter(Writer):
     
-    def writeHeader(self,field_names,field_units = list()):
+    def write_header(self,field_names,field_units = list()):
 
         self.f_id.write("{0:s}\n".format(time.strftime("%c")))
         self.f_id.write("[Header]\n")
@@ -71,9 +71,9 @@ class MDDataFileWriter(Writer):
         self.f_id.write("[Header end]\n\n")
         self.f_id.flush()
 
-    def writeDataContainer(self,DC):
+    def write_data_container(self,DC):
 
-        self.writeHeader(DC.field_names,DC.field_units)
+        self.write_header(DC.field_names,DC.field_units)
 
-        self.writeData(DC.data_array)
+        self.write_data(DC.data_array)
 
