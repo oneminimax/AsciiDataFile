@@ -1,6 +1,20 @@
 from os import path
 
-def read_PPMS_ACMS_dataFile():
+def read_PPMS_SQUID_data_file():
+
+    from AsciiDataFile.Readers import SQUIDDataReader as Reader
+
+    data_path = 'data/'
+    data_file = '20171003_NiFe_ech1_MvsH_500eO_001.dc.dat'
+
+    reader = Reader()
+    data_container = reader.read(path.join(data_path,data_file))
+    print(data_container)
+
+    X = data_container.get_field_by_name('magnetic field')
+    Y = data_container.get_field_by_name('long moment')
+
+def read_PPMS_ACMS_data_file():
 
     from AsciiDataFile.Readers import PPMSACMSDataReader as Reader
 
@@ -14,7 +28,7 @@ def read_PPMS_ACMS_dataFile():
     X = data_container.get_field_by_name('magnetic field')
     Y = data_container.get_field_by_name('magnetization dc')
 
-def read_MD_dataFile():
+def read_MD_data_file():
 
     from AsciiDataFile.Readers import MDDataFileReader as Reader
 
@@ -29,7 +43,7 @@ def read_MD_dataFile():
     X = data_container.get_field_by_name('magneticField')
     Y = data_container.get_field_by_name('VH')
 
-def read_XRD_generic_dataFile():
+def read_XRD_generic_data_file():
 
     from AsciiDataFile.Readers import GenericDataReader as Reader
 
@@ -55,8 +69,8 @@ def readAcquisXD():
 
     data_container = reader.read(path.join(data_path,data_file))
 
-
-read_PPMS_ACMS_dataFile()
-# read_MD_dataFile()
-# read_XRD_generic_dataFile()
+read_PPMS_SQUID_data_file()
+# read_PPMS_ACMS_data_file()
+# read_MD_data_file()
+# read_XRD_generic_data_file()
 # readAcquisXD()
