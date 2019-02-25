@@ -11,8 +11,8 @@ def read_PPMS_SQUID_data_file():
     data_container = reader.read(path.join(data_path,data_file))
     print(data_container)
 
-    X = data_container.get_field_by_name('magnetic field')
-    Y = data_container.get_field_by_name('long moment')
+    X = data_container.get_column_by_name('magnetic field')
+    Y = data_container.get_column_by_name('long moment')
 
 def read_PPMS_ACMS_data_file():
 
@@ -25,8 +25,12 @@ def read_PPMS_ACMS_data_file():
     data_container = reader.read(path.join(data_path,data_file))
     print(data_container)
 
-    X = data_container.get_field_by_name('magnetic field')
-    Y = data_container.get_field_by_name('magnetization dc')
+    X = data_container.get_column_by_name('magnetic field')
+    Y = data_container.get_column_by_name('magnetization dc')
+
+    sub_data_container = data_container.extract(X < 2e3)
+
+    print(sub_data_container)
 
 def read_MD_data_file():
 
@@ -40,8 +44,8 @@ def read_MD_data_file():
     data_container = reader.read(path.join(data_path,data_file))
     print(data_container)
 
-    X = data_container.get_field_by_name('magneticField')
-    Y = data_container.get_field_by_name('VH')
+    X = data_container.get_column_by_name('magneticField')
+    Y = data_container.get_column_by_name('VH')
 
 def read_XRD_generic_data_file():
 
@@ -55,10 +59,10 @@ def read_XRD_generic_data_file():
     data_container = reader.read(path.join(data_path,data_file))
     print(data_container)
 
-    X = data_container.get_field_by_name('angle')
-    Y = data_container.get_field_by_name('signal')
+    X = data_container.get_column_by_name('angle')
+    Y = data_container.get_column_by_name('signal')
 
-def readAcquisXD():
+def read_AcquisXD():
 
     from AsciiDataFile.Readers import GenericDataReader as Reader
 
@@ -69,8 +73,8 @@ def readAcquisXD():
 
     data_container = reader.read(path.join(data_path,data_file))
 
-read_PPMS_SQUID_data_file()
-# read_PPMS_ACMS_data_file()
+# read_PPMS_SQUID_data_file()
+read_PPMS_ACMS_data_file()
 # read_MD_data_file()
 # read_XRD_generic_data_file()
-# readAcquisXD()
+# read_AcquisXD()

@@ -26,7 +26,7 @@ class Writer(object):
 
         new_file_name = self.file_name
         while path.isfile(new_file_name):
-            m = re.match('(.+)_(\d{3}).([^.]+)\Z',new_file_name)
+            m = re.match(r"(.+)_(\d{3}).([^.]+)\Z",new_file_name)
             if m:
                 base_name = m.group(1)
                 dig = int(m.group(2))
@@ -59,21 +59,21 @@ class MDDataFileWriter(Writer):
     
     def write_header(self,field_names,field_units = list()):
 
-        self.f_id.write("{0:s}\n".format(time.strftime("%c")))
-        self.f_id.write("[Header]\n")
+        self.f_id.write(r"{0:s}\n".format(time.strftime("%c")))
+        self.f_id.write(r"[Header]\n")
         if len(field_units) > 0:
             for i, field_name in enumerate(field_names):
-                self.f_id.write("Column {0:2d} : {1:20s}\t{2:s}\n".format(i, field_name, field_units[i]))
+                self.f_id.write(r"Column {0:2d} : {1:20s}\t{2:s}\n".format(i, field_name, field_units[i]))
         else:
             for i, field_name in enumerate(field_names):
-                self.f_id.write("Column {0:2d} : {1:20s}\n".format(i, field_name))
+                self.f_id.write(r"Column {0:2d} : {1:20s}\n".format(i, field_name))
 
         self.f_id.write("[Header end]\n\n")
         self.f_id.flush()
 
-    def write_data_container(self,DC):
+    def write_data_container(self,data_container):
 
-        self.write_header(DC.field_names,DC.field_units)
+        self.write_header(data_container.field_names,data_container.field_units)
 
-        self.write_data(DC.data_array)
+        self.write_data(data_container.data_array)
 
