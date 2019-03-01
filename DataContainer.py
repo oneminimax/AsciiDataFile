@@ -63,11 +63,11 @@ class DataContainer(object):
         else:
             raise ValueError('New Data Length ({0:d}) is not conform to the number of data fields ({1:d}).'.format(len(new_data),self.number_of_columns))
 
-    def add_data_field(self,column_name,unit,data):
+    def add_data_column(self,column_name,column_units,data):
 
         if self.number_of_columns == 0:
             self.column_names.append(column_name)
-            self.column_units.append(unit)
+            self.column_units.append(column_units)
             self.number_of_columns += 1
             self.data_array = np.zeros((len(data),1))
             self.data_array = np.atleast_2d(data).T
@@ -75,7 +75,7 @@ class DataContainer(object):
         else:
             if len(data) == self.number_of_data_points:
                 self.column_names.append(column_name)
-                self.column_units.append(unit)
+                self.column_units.append(column_units)
                 self.number_of_columns += 1
                 new_column = np.zeros(self.data_array.shape[0])
                 new_column[:self.number_of_data_points] = data
