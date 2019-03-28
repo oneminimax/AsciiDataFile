@@ -1,5 +1,19 @@
 from os import path
 
+def read_PPMS_Resistivity_data_file():
+
+    from AsciiDataFile.Readers import PPMSResistivityDataReader as Reader
+
+    data_path = 'data/'
+    data_file = '20181108_RvsT_3CH_Side1.dat'
+
+    reader = Reader()
+    data_container = reader.read(path.join(data_path,data_file),1)
+    print(data_container)
+
+    X = data_container.get_column_by_name('temperature')
+    Y = data_container.get_column_by_name('resistance')
+
 def read_PPMS_SQUID_data_file():
 
     from AsciiDataFile.Readers import SQUIDDataReader as Reader
@@ -31,6 +45,20 @@ def read_PPMS_ACMS_data_file():
     sub_data_container = data_container.extract(X < 2e3)
 
     print(sub_data_container)
+
+def read_PPMS_Heat_Capacity_data_file():
+
+    from AsciiDataFile.Readers import PPMSHeatCapacityDataReader as Reader
+
+    data_path = 'data/'
+    data_file = 'Add-135-15Feb2019-1.dat'
+
+    reader = Reader()
+    data_container = reader.read(path.join(data_path,data_file))
+    print(data_container)
+
+    X = data_container.get_column_by_name('sample temperature')
+    Y = data_container.get_column_by_name('sample HC')
 
 def read_MD_data_file():
 
@@ -73,8 +101,10 @@ def read_AcquisXD():
 
     data_container = reader.read(path.join(data_path,data_file))
 
+read_PPMS_Resistivity_data_file()
+# read_PPMS_Heat_Capacity_data_file()
 # read_PPMS_SQUID_data_file()
-read_PPMS_ACMS_data_file()
+# read_PPMS_ACMS_data_file()
 # read_MD_data_file()
 # read_XRD_generic_data_file()
 # read_AcquisXD()

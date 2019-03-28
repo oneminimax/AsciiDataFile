@@ -4,6 +4,8 @@ from .DataContainer import DataContainer
 
 class Reader(object):
 
+    codec = 'utf-8'
+
     def __init__(self):
 
         pass
@@ -39,7 +41,7 @@ class Reader(object):
         """
 
         try:
-            self.f_id = open(file_path,'r')
+            self.f_id = open(file_path,'r',encoding = self.codec)
 
         except IOError:
             print("Cannot open {0:s}".format(file_path))
@@ -211,10 +213,7 @@ class MDDataFileReader(Reader):
 
         return self._field_names, self._units, list(range(len(self._field_names)))
 
-class SQUIDDataReader(Reader):
-    """ SQUIDDataReader read Quantum Design SQUID data file format."""
-
-    separator = ','
+class QDReader(Reader):
 
     def _read_header(self):
         """ Not implemented yet. Just skip to the data part. """
@@ -227,144 +226,116 @@ class SQUIDDataReader(Reader):
 
     def define_column_names_units_numbers(self):
 
-        column_names = [
-            'time',
-            'magnetic field',
-            'temperature',
-            'long moment',
-            'long scan std dev',
-            'long algorithm',
-            'long reg fit',
-            'long percent error'
-            ]
-        column_units = [
-            's',
-            'Oe',
-            'K',
-            'emu',
-            'emu',
-            None,
-            None,
-            '%'
-            ]
-        column_numbers = [0,2,3,4,5,6,7,8]
+        column_names = list()
+        column_units = list()
+        column_numbers = list()
+        for column_tuple in self.column_tuples:
+            column_names.append(column_tuple[1])
+            column_units.append(column_tuple[2])
+            column_numbers.append(column_tuple[0])
 
         return column_names, column_units, column_numbers
 
-class PPMSResistivityDataReader(Reader):
+
+class SQUIDDataReader(QDReader):
+    """ SQUIDDataReader read Quantum Design SQUID data file format."""
+
+    separator = ','
+    column_tuples = [
+        (0,'time','s'),
+        (2,'magnetic field','Oe'),
+        (3,'temperature','K'),
+        (4,'long moment','emu'),
+        (5,'long scan std dev','emu'),
+        (6,'long algorithm',None),
+        (7,'long reg fit',None),
+        (8,'long percent error','%')
+        ]
+
+class PPMSResistivityDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design PPMS resistivity data file format."""
 
     separator = ','
+    column_tuples = [
+        (1,'time','s'),
+        (3,'temperature','K'),
+        (4,'magnetic field','Oe'),
+        (5,'sample position','deg')
+        ]
 
     def __init__(self):
         
         Reader.__init__(self)
 
     def read(self,file_path,sample_number = 0):
-      
-        self.sample_number = sample_number
+
+        self.add_channel_column_tuples(sample_number)
 
         return Reader.read(self,file_path)
-        
-    def _read_header(self):
-        """ Not implemented yet. Just skip to the data part. """
 
-        while True:
-            line = self.f_id.readline()
-            if bool(re.match(r"\[Data\]",line)):
-                break
-        line = self.f_id.readline()
-
-    def define_column_names_units_numbers(self):
-
-        column_names = [
-            'time',
-            'temperature',
-            'magnetic field',
-            'sample position'
-            ]
-        column_units = [
-            's',
-            'K',
-            'Oe',
-            'deg',
-            ]
-        column_numbers = [1,3,4,5]
-
-        if self.sample_number == 0:
+    def add_channel_column_tuples(self,sample_number):
+        if sample_number == 0:
             for i in range(1,4):
-                column_names.append('resistance{0:d}'.format(i))
-                column_units.append('ohm')
-                column_numbers.append(4 + 2*i)
-                column_names.append('current{0:d}'.format(i))
-                column_units.append('uA')
-                column_numbers.append(5 + 2*i)
+                self.column_tuples.append((4 + 2*i,'resistance{0:d}'.format(i),'ohm'))
+                self.column_tuples.append((5 + 2*i,'current{0:d}'.format(i),'ua'))
 
-        elif self.sample_number in [1,2,3]:
-            column_names.append('resistance')
-            column_units.append('ohm')
-            column_numbers.append(4 + 2*self.sample_number)
-            column_names.append('current')
-            column_units.append('uA')
-            column_numbers.append(5 + 2*self.sample_number)
+        elif sample_number in [1,2,3]:
+            self.column_tuples.append((4 + 2*sample_number,'resistance','ohm'))
+            self.column_tuples.append((5 + 2*sample_number,'current','ua'))
 
-        return column_names, column_units, column_numbers
-
-class PPMSACMSDataReader(Reader):
+class PPMSACMSDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design PPMS ACMS data file format."""
 
     separator = ','
+    column_tuples = [
+        (1,'time','s'),
+        (2,'temperature','K'),
+        (3,'magnetic field','Oe'),
+        (4,'frequency','Hz'),
+        (5,'amplitude','Oe'),
+        (6,'magnetization dc','emu'),
+        (7,'magnetization std','emu')
+        ]
 
     def __init__(self,number_of_harmonics = 1):
 
         self.number_of_harmonics = number_of_harmonics
 
         Reader.__init__(self)
-        
-    def _read_header(self):
-        """ Not implemented yet. Just skip to the data part. """
 
-        while True:
-            line = self.f_id.readline()
-            if bool(re.match(r"\[Data\]",line)):
-                break
-        line = self.f_id.readline()
-
-    def define_column_names_units_numbers(self):
-
-        column_names = [
-            'time',
-            'temperature',
-            'magnetic field',
-            'frequency',
-            'amplitude',
-            'magnetization dc',
-            'magnetization std'
-            ]
-        column_units = [
-            's',
-            'K',
-            'Oe',
-            'Hz',
-            'Oe',
-            'emu',
-            'emu'
-            ]
-        column_numbers = [1,2,3,4,5,6,7]
-
+    def add_harmonics_column_tuples(self,number_of_harmonics):
         for har in range(self.number_of_harmonics):
-            column_names.append("magnetizationReal[{0:d}]".format(har+1))
-            column_units.append('')
-            column_numbers.append(8 + 4 * har)
-            column_names.append("magnetizationImag[{0:d}]".format(har+1))
-            column_units.append('')
-            column_numbers.append(9 + 4 * har)
-            column_names.append("magnetizationAbs[{0:d}]".format(har+1))
-            column_units.append('')
-            column_numbers.append(10 + 4 * har)
-            column_names.append("magnetizationPhase[{0:d}]".format(har+1))
-            column_units.append('')
-            column_numbers.append(11 + 4 * har)
+            self.column_tuples.append((8 + 4 * har,'magnetizationReal[{0:d}]'.format(har+1),''))
+            self.column_tuples.append((9 + 4 * har,'magnetizationImag[{0:d}]'.format(har+1),''))
+            self.column_tuples.append((10 + 4 * har,'magnetizationAbs[{0:d}]'.format(har+1),''))
+            self.column_tuples.append((11 + 4 * har,'magnetizationPhase[{0:d}]'.format(har+1),''))
 
-        return column_names, column_units, column_numbers
+class PPMSHeatCapacityDataReader(QDReader):
+    """ SQUIDDataReader read Quantum Design PPMS ACMS data file format."""
+
+    codec = 'cp1252'
+    separator = ','
+    column_tuples = [
+        (0,'time','s'),
+        (1,'PPMS status',None),
+        (2,'puck temperature','K'),
+        (3,'system temperature','K'),
+        (4,'magnetic field','Oe'),
+        (5,'pressure','torr'),
+        (6,'sample temperature','K'),
+        (7,'temperature rise','K'),
+        (8,'sample HC','uJ/K'),
+        (9,'sample HC err','uJ/K'),
+        (10,'addenda HC','uJ/K'),
+        (11,'addenda HC err','uJ/K'),
+        (12,'total HC','uJ/K'),
+        (13,'total HC err','uJ/K'),
+        (14,'fit deviation',None),
+        (15,'tau1','s'),
+        (16,'tau2','s'),
+        (17,'sample coupling','%'),
+        (18,'debye temperature','K'),
+        (19,'debye temperature err','K'),
+        (20,'cal correction',None)
+        ]
 
