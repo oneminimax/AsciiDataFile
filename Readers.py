@@ -156,6 +156,8 @@ class GenericDataReader(Reader):
         for n in range(self._nb_head_lines):
             header_lines.append(self.f_id.readline())
 
+# class ColumnDataReader(Reader): # todo
+
 class MDDataFileReader(Reader):
     """ MDDataFileReader read in house data file where the header contains the information
     about the column names and units."""

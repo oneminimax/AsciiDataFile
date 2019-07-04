@@ -59,14 +59,14 @@ class MDDataFileWriter(Writer):
     
     def write_header(self,field_names,field_units = list()):
 
-        self.f_id.write(r"{0:s}\n".format(time.strftime("%c")))
-        self.f_id.write(r"[Header]\n")
+        self.f_id.write("{0:s}\n".format(time.strftime("%c")))
+        self.f_id.write("[Header]\n")
         if len(field_units) > 0:
             for i, field_name in enumerate(field_names):
-                self.f_id.write(r"Column {0:2d} : {1:20s}\t{2:s}\n".format(i, field_name, field_units[i]))
+                self.f_id.write("Column {0:2d} : {1:20s}\t{2:s}\n".format(i, field_name, field_units[i]))
         else:
             for i, field_name in enumerate(field_names):
-                self.f_id.write(r"Column {0:2d} : {1:20s}\n".format(i, field_name))
+                self.f_id.write("Column {0:2d} : {1:20s}\n".format(i, field_name))
 
         self.f_id.write("[Header end]\n\n")
         self.f_id.flush()
