@@ -45,14 +45,14 @@ class Writer(object):
         for i in range(data_array.shape[0]):
             self.add_data_point(data_array[i])
 
-    def add_data_point(self,newData):
+    def add_data_point(self,data_point):
 
-        lineStr = ''
-        for j in range(len(newData)):
-            lineStr += "{0:+10.8e}{1:s}".format(newData[j],self.separator)
+        line = ''
+        for value in data_point:
+            line += "{0:+10.8e}{1:s}".format(value,self.separator)
 
-        if lineStr:
-            self.f_id.write(lineStr[:-len(self.separator)] + "\n")
+        if line:
+            self.f_id.write(line[:-len(self.separator)] + "\n")
             self.f_id.flush()
 
 class MDDataFileWriter(Writer):
@@ -77,3 +77,50 @@ class MDDataFileWriter(Writer):
 
         self.write_data(data_container.data_array)
 
+class DataColumnWriter(Writer):
+
+    def __init__(self,*args,**kwargs):
+
+        Writer.__init__(self,*args,**kwargs)
+
+        self.column_datas = list()
+        self.column_names = list()
+        self.column_number = 0
+        self.column_length = 0
+
+    def add_data_column(self,name,data):
+
+        if self.column_number == 0:
+            self._add_data_column(name,data)
+            self.column_length = len(data)
+        else:
+            if self.column_length == len(data):
+                self._add_data_column(name,data)
+            else:
+                raise('Column length should match previous.')
+
+    def _add_data_column(self,name,data):
+
+        self.column_names.append(name)
+        self.column_datas.append(data)
+        self.column_number += 1
+
+    def _make_data_array(self):
+
+        data_array = np.zeros((self.column_length,self.column_number))
+        for i, column_data in enumerate(self.column_datas):
+            data_array[:,i] = column_data
+
+        return data_array
+
+    def write(self):
+
+        line = ''
+        for column_name in self.column_names:
+            line += "{0:15s}{1:s}".format(column_name,self.separator)
+
+        if line:
+            self.f_id.write(line[:-len(self.separator)] + "\n")
+            
+        self.write_data(self._make_data_array())
+        self.f_id.flush()

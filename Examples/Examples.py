@@ -101,10 +101,29 @@ def read_AcquisXD():
 
     data_container = reader.read(path.join(data_path,data_file))
 
-read_PPMS_Resistivity_data_file()
+def write_column_data_file():
+
+    from AsciiDataFile.Writers import DataColumnWriter as Writer
+    import numpy as np
+
+    data_path = 'data/'
+    data_file = 'test_column.txt'
+
+    writer = Writer(path.join(data_path,data_file),auto_numbering = False,separator = '\t')
+    
+    X = np.linspace(0,100)
+    Y = np.sin(X)
+
+    writer.add_data_column('X',X)
+    writer.add_data_column('Y',Y)
+
+    writer.write()
+
+# read_PPMS_Resistivity_data_file()
 # read_PPMS_Heat_Capacity_data_file()
 # read_PPMS_SQUID_data_file()
 # read_PPMS_ACMS_data_file()
 # read_MD_data_file()
 # read_XRD_generic_data_file()
+write_column_data_file()
 # read_AcquisXD()
