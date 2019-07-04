@@ -113,14 +113,17 @@ class DataColumnWriter(Writer):
 
         return data_array
 
+    def _write_head_line(self):
+
+        head_line = ''
+        for column_name in self.column_names:
+            head_line += "{0:15s}{1:s}".format(column_name,self.separator)
+
+        if head_line:
+            self.f_id.write(head_line[:-len(self.separator)] + "\n")
+
     def write(self):
 
-        line = ''
-        for column_name in self.column_names:
-            line += "{0:15s}{1:s}".format(column_name,self.separator)
-
-        if line:
-            self.f_id.write(line[:-len(self.separator)] + "\n")
-            
+        self._write_head_line()  
         self.write_data(self._make_data_array())
         self.f_id.flush()
