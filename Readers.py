@@ -1,6 +1,6 @@
 import numpy as np
 import re
-from .DataContainer import DataContainer
+from .DataContainer import DataBag
 
 class Reader(object):
 
@@ -14,7 +14,7 @@ class Reader(object):
 
         return str(self.get_column_names())
 
-    def read(self,file_path):
+    def read(self,file_path,apply_units = False):
         """ Read a file 
 
         file_path : full path to the data file
@@ -28,9 +28,12 @@ class Reader(object):
         self.column_names, self.column_units, self.column_numbers = self.define_column_names_units_numbers()
         self._init_data_mapper()
         
-        data_container = self._read_data()
+        data_bag = self._read_data()
 
-        return data_container
+        if apply_units:
+            return data_bag.to_data_curve(self.column_names, self.column_units)
+        else:
+            return data_bag
 
     def _open_file(self,file_path):
         """ Open a file. Set the file as the active file. 
@@ -47,10 +50,10 @@ class Reader(object):
             print("Cannot open {0:s}".format(file_path))
             raise
 
-    def _new_data_container(self):
+    def _new_data_bag(self):
         """ Create the DataContainer with the field names and units """
         
-        return DataContainer(column_names = self.column_names,column_units = self.column_units)
+        return DataBag(len(self.column_names))
 
     def define_column_names_units_numbers(self):
         """ Define three list : column_names, column_units and column_numbers. 
@@ -99,19 +102,21 @@ class Reader(object):
         Return the data formated into a DataContainer
         """
 
-        data_container = self._new_data_container()
+        data_bag = self._new_data_bag()
         while True:
             try:
                 keep_reading, new_data = self._read_data_line()
                 if keep_reading:
                     if isinstance(new_data,np.ndarray):
-                        data_container.add_data_point(new_data)
+                        data_bag.add_data_point(new_data)
                 else:
                     break
             except:
                 break
 
-        return data_container
+        data_bag.crop()
+
+        return data_bag
 
     def map_data_line(self,splited_line):
         """ Map a splited data line and map selected column in the same order as column_names """
@@ -138,7 +143,7 @@ class GenericDataReader(Reader):
         """
         
         self.separator = separator
-        self._field_names = column_names
+        self._column_names = column_names
         self._units = column_units
         self._nb_head_lines = nb_head_lines
 
@@ -146,7 +151,7 @@ class GenericDataReader(Reader):
 
     def define_column_names_units_numbers(self):
 
-        return self._field_names, self._units, list(range(len(self._field_names)))
+        return self._column_names, self._units, list(range(len(self._column_names)))
 
     def _read_header(self):
         """ Read the header of the active data file."""
@@ -156,7 +161,38 @@ class GenericDataReader(Reader):
         for n in range(self._nb_head_lines):
             header_lines.append(self.f_id.readline())
 
-# class ColumnDataReader(Reader): # todo
+class DataColumnReader(Reader): # todo
+    def __init__(self,separator):
+
+        self.separator = separator
+
+    def _read_header(self):
+        header_line = self.f_id.readline()
+        column_heads = re.split(self.separator,header_line)
+
+        column_names = list()
+        column_units = list()
+
+        for column_head in column_heads:
+            column_head = column_head.strip()
+            m_wu = re.match(r"(.+)\((.+)\)",column_head)
+            if m_wu:
+                column_name = m_wu.group(1).strip()
+                column_unit = m_wu.group(2).strip()
+            else:
+                column_name = column_head
+                column_unit = None
+
+            column_names.append(column_name)
+            column_units.append(column_unit)
+
+        self._column_names = column_names
+        self._units = column_units
+
+    def define_column_names_units_numbers(self):
+
+        return self._column_names, self._units, list(range(len(self._column_names)))
+
 
 class MDDataFileReader(Reader):
     """ MDDataFileReader read in house data file where the header contains the information
@@ -208,12 +244,12 @@ class MDDataFileReader(Reader):
                     column_names.append(subLine.strip())
                     column_units.append('u.a.')
 
-        self._field_names = column_names
+        self._column_names = column_names
         self._units = column_units
 
     def define_column_names_units_numbers(self):
 
-        return self._field_names, self._units, list(range(len(self._field_names)))
+        return self._column_names, self._units, list(range(len(self._column_names)))
 
 class QDReader(Reader):
 
@@ -247,8 +283,8 @@ class SQUIDDataReader(QDReader):
         (0,'time','s'),
         (2,'magnetic field','Oe'),
         (3,'temperature','K'),
-        (4,'long moment','emu'),
-        (5,'long scan std dev','emu'),
+        (4,'long moment','mA/m**2'), #ureg.milliampere*ureg.meter**2
+        (5,'long scan std dev','mA/m**2'),
         (6,'long algorithm',None),
         (7,'long reg fit',None),
         (8,'long percent error','%')
@@ -269,21 +305,21 @@ class PPMSResistivityDataReader(QDReader):
         
         Reader.__init__(self)
 
-    def read(self,file_path,sample_number = 0):
+    def read(self,file_path,sample_number = 0,apply_units = False):
 
         self.add_channel_column_tuples(sample_number)
 
-        return Reader.read(self,file_path)
+        return Reader.read(self,file_path,apply_units)
 
     def add_channel_column_tuples(self,sample_number):
         if sample_number == 0:
             for i in range(1,4):
                 self.column_tuples.append((4 + 2*i,'resistance{0:d}'.format(i),'ohm'))
-                self.column_tuples.append((5 + 2*i,'current{0:d}'.format(i),'ua'))
+                self.column_tuples.append((5 + 2*i,'current{0:d}'.format(i),'uA'))
 
         elif sample_number in [1,2,3]:
             self.column_tuples.append((4 + 2*sample_number,'resistance','ohm'))
-            self.column_tuples.append((5 + 2*sample_number,'current','ua'))
+            self.column_tuples.append((5 + 2*sample_number,'current','uA'))
 
 class PPMSACMSDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design PPMS ACMS data file format."""
@@ -295,8 +331,8 @@ class PPMSACMSDataReader(QDReader):
         (3,'magnetic field','Oe'),
         (4,'frequency','Hz'),
         (5,'amplitude','Oe'),
-        (6,'magnetization dc','emu'),
-        (7,'magnetization std','emu')
+        (6,'magnetization dc','mA/m**2'),
+        (7,'magnetization std','mA/m**2')
         ]
 
     def __init__(self,number_of_harmonics = 1):

@@ -4,10 +4,11 @@ import time
 import re
 
 class Writer(object):
-    def __init__(self,file_name,auto_numbering = True,separator = ','):
+    def __init__(self,file_name,auto_numbering = True,separator = ', ',column_width = 15):
         self.file_name = file_name
         self.auto_numbering = auto_numbering
         self.separator = separator
+        self.column_width = column_width
 
         self._open_file()
 
@@ -49,7 +50,11 @@ class Writer(object):
 
         line = ''
         for value in data_point:
-            line += "{0:+10.8e}{1:s}".format(value,self.separator)
+            line += "{value:+{width}.8e}{sep:s}".format(
+                value = value,
+                width = self.column_width,
+                sep = self.separator
+                )
 
         if line:
             self.f_id.write(line[:-len(self.separator)] + "\n")
@@ -85,24 +90,22 @@ class DataColumnWriter(Writer):
 
         self.column_datas = list()
         self.column_names = list()
+        self.column_units = list() #strings
         self.column_number = 0
         self.column_length = 0
 
-    def add_data_column(self,name,data):
+    def add_data_column(self,name,data,units = None):
 
         if self.column_number == 0:
-            self._add_data_column(name,data)
             self.column_length = len(data)
         else:
-            if self.column_length == len(data):
-                self._add_data_column(name,data)
-            else:
+            if not self.column_length == len(data):
                 raise('Column length should match previous.')
-
-    def _add_data_column(self,name,data):
 
         self.column_names.append(name)
         self.column_datas.append(data)
+        self.column_units.append(units)
+
         self.column_number += 1
 
     def _make_data_array(self):
@@ -116,8 +119,12 @@ class DataColumnWriter(Writer):
     def _write_head_line(self):
 
         head_line = ''
-        for column_name in self.column_names:
-            head_line += "{0:15s}{1:s}".format(column_name,self.separator)
+        for i, column_name in enumerate(self.column_names):
+            if self.column_units[i] is None:
+                column_str = "{0:s}".format(column_name)
+            else:
+                column_str = "{0:s} ({1:s})".format(column_name,self.column_units[i])
+            head_line += "{col:>{width}s}{sep:s}".format(col = column_str,width = self.column_width,sep = self.separator)
 
         if head_line:
             self.f_id.write(head_line[:-len(self.separator)] + "\n")
@@ -127,3 +134,9 @@ class DataColumnWriter(Writer):
         self._write_head_line()  
         self.write_data(self._make_data_array())
         self.f_id.flush()
+
+class DataColumnWriterWithUnits(DataColumnWriter):
+
+    def add_data_column(self,name,data):
+
+        super().add_data_column(name,data.magnitude,'{:~P}'.format(data.units))
