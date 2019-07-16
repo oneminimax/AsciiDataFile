@@ -57,7 +57,6 @@ class DataCurve(object):
     def init_columns(self,column_names,column_units_labels):
 
         for i, column_name in enumerate(column_names):
-            print(column_units_labels[i])
             try:
                 column_units = ureg(column_units_labels[i])
             except:
@@ -151,6 +150,25 @@ class DataCurve(object):
     def add_parameter(self,parameter_name,parameter_value):
 
         self.parameter_dict[parameter_name] = parameter_value
+
+    def get_column_names(self):
+
+        return self.column_names
+
+    def get_column_units(self):
+
+        column_units = list()
+
+        for column_name in self.column_names:
+            column_units.append(self.column_dict[column_name].units)
+
+        return column_units
+
+    def get_column_by_name(self,column_name):
+
+        return self.column_dict[column_name][:self.data_length]
+
+
 
     # Manipulation methods
 

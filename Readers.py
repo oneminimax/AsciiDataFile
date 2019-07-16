@@ -14,7 +14,7 @@ class Reader(object):
 
         return str(self.get_column_names())
 
-    def read(self,file_path,apply_units = False):
+    def read(self,file_path):
         """ Read a file 
 
         file_path : full path to the data file
@@ -159,7 +159,7 @@ class GenericDataReader(Reader):
         self._units = column_units
         self._nb_head_lines = nb_head_lines
 
-        Reader.__init__(self)
+        super().__init__()
 
     def define_column_names_units_numbers(self):
 
@@ -175,6 +175,8 @@ class GenericDataReader(Reader):
 
 class DataColumnReader(Reader): # todo
     def __init__(self,separator = ','):
+
+        super().__init__()
 
         self.separator = separator
 
@@ -205,12 +207,14 @@ class DataColumnReader(Reader): # todo
 
         return self._column_names, self._units, list(range(len(self._column_names)))
 
-
 class MDDataFileReader(Reader):
     """ MDDataFileReader read in house data file where the header contains the information
     about the column names and units."""
     
-    separator = ','
+    def __init__(self):
+
+        super().__init__()
+        self.separator = ','
 
     def _read_header(self):
         """ Read the header lines. Store the column names and units. """
@@ -286,42 +290,45 @@ class QDReader(Reader):
 
         return column_names, column_units, column_numbers
 
-
 class SQUIDDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design SQUID data file format."""
 
-    separator = ','
-    column_tuples = [
-        (0,'time','s'),
-        (2,'magnetic field','Oe'),
-        (3,'temperature','K'),
-        (4,'long moment','mA/m**2'), #ureg.milliampere*ureg.meter**2
-        (5,'long scan std dev','mA/m**2'),
-        (6,'long algorithm',None),
-        (7,'long reg fit',None),
-        (8,'long percent error','%')
-        ]
+    def __init__(self):
+        
+        super().__init__()
+
+        self.separator = ','
+        self.column_tuples = [
+            (0,'time','s'),
+            (2,'magnetic field','Oe'),
+            (3,'temperature','K'),
+            (4,'long moment','mA/m**2'), #ureg.milliampere*ureg.meter**2
+            (5,'long scan std dev','mA/m**2'),
+            (6,'long algorithm',None),
+            (7,'long reg fit',None),
+            (8,'long percent error','%')
+            ]
 
 class PPMSResistivityDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design PPMS resistivity data file format."""
 
-    separator = ','
-    column_tuples = [
-        (1,'time','s'),
-        (3,'temperature','K'),
-        (4,'magnetic field','Oe'),
-        (5,'sample position','deg')
-        ]
-
     def __init__(self):
         
-        Reader.__init__(self)
+        super().__init__()
 
-    def read(self,file_path,sample_number = 0,apply_units = False):
+        self.separator = ','
+        self.column_tuples = [
+            (1,'time','s'),
+            (3,'temperature','K'),
+            (4,'magnetic field','Oe'),
+            (5,'sample position','deg')
+            ]
+
+    def read(self,file_path,sample_number = 0):
 
         self.add_channel_column_tuples(sample_number)
 
-        return Reader.read(self,file_path,apply_units)
+        return Reader.read(self,file_path)
 
     def add_channel_column_tuples(self,sample_number):
         if sample_number == 0:
@@ -336,22 +343,23 @@ class PPMSResistivityDataReader(QDReader):
 class PPMSACMSDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design PPMS ACMS data file format."""
 
-    separator = ','
-    column_tuples = [
-        (1,'time','s'),
-        (2,'temperature','K'),
-        (3,'magnetic field','Oe'),
-        (4,'frequency','Hz'),
-        (5,'amplitude','Oe'),
-        (6,'magnetization dc','mA/m**2'),
-        (7,'magnetization std','mA/m**2')
-        ]
-
     def __init__(self,number_of_harmonics = 1):
 
-        self.number_of_harmonics = number_of_harmonics
+        super().__init__()
 
-        Reader.__init__(self)
+        self.number_of_harmonics = number_of_harmonics
+        self.separator = ','
+        self.column_tuples = [
+            (1,'time','s'),
+            (2,'temperature','K'),
+            (3,'magnetic field','Oe'),
+            (4,'frequency','Hz'),
+            (5,'amplitude','Oe'),
+            (6,'magnetization dc','mA/m**2'),
+            (7,'magnetization std','mA/m**2')
+            ]
+
+        
 
     def add_harmonics_column_tuples(self,number_of_harmonics):
         for har in range(self.number_of_harmonics):
@@ -364,28 +372,34 @@ class PPMSHeatCapacityDataReader(QDReader):
     """ SQUIDDataReader read Quantum Design PPMS ACMS data file format."""
 
     codec = 'cp1252'
-    separator = ','
-    column_tuples = [
-        (0,'time','s'),
-        (1,'PPMS status',None),
-        (2,'puck temperature','K'),
-        (3,'system temperature','K'),
-        (4,'magnetic field','Oe'),
-        (5,'pressure','torr'),
-        (6,'sample temperature','K'),
-        (7,'temperature rise','K'),
-        (8,'sample HC','uJ/K'),
-        (9,'sample HC err','uJ/K'),
-        (10,'addenda HC','uJ/K'),
-        (11,'addenda HC err','uJ/K'),
-        (12,'total HC','uJ/K'),
-        (13,'total HC err','uJ/K'),
-        (14,'fit deviation',None),
-        (15,'tau1','s'),
-        (16,'tau2','s'),
-        (17,'sample coupling','%'),
-        (18,'debye temperature','K'),
-        (19,'debye temperature err','K'),
-        (20,'cal correction',None)
-        ]
+
+    def __init__(self):
+
+        super().__init__()
+        
+        self.separator = ','
+        self.column_tuples = [
+            (0,'time','s'),
+            (1,'PPMS status',None),
+            (2,'puck temperature','K'),
+            (3,'system temperature','K'),
+            (4,'magnetic field','Oe'),
+            (5,'pressure','torr'),
+            (6,'sample temperature','K'),
+            (7,'temperature rise','K'),
+            (8,'sample HC','uJ/K'),
+            (9,'sample HC err','uJ/K'),
+            (10,'addenda HC','uJ/K'),
+            (11,'addenda HC err','uJ/K'),
+            (12,'total HC','uJ/K'),
+            (13,'total HC err','uJ/K'),
+            (14,'fit deviation',None),
+            (15,'tau1','s'),
+            (16,'tau2','s'),
+            (17,'sample coupling','%'),
+            (18,'debye temperature','K'),
+            (19,'debye temperature err','K'),
+            (20,'cal correction',None)
+            ]
+
 
