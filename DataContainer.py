@@ -6,62 +6,17 @@ set_application_registry(ureg)
 
 from scipy.interpolate import interp1d
 
-class DataBag(object):
-    def __init__(self,column_number,chunk_size = 10):
-
-        self.chunk_size = chunk_size
-        self.column_number = column_number
-        
-        self.data_bag = np.empty((self.chunk_size,self.column_number))
-        self.data_point_number = 0
-
-    def __str__(self):
-
-        return str(self.data_bag)
-
-    def add_data_point(self,new_data):
-
-        if not len(new_data) == self.column_number:
-            raise ValueError('New Data Length ({0:d}) is not conform to the number of data fields ({1:d}).'.format(len(new_data),self.column_number))
-
-        if self.data_bag.shape[0] == self.data_point_number:
-            self._extend_chunk()
-        self.data_bag[self.data_point_number,:] = new_data
-        self.data_point_number += 1
-            
-    def _extend_chunk(self):
-
-        larger_data_bag = np.empty((self.data_point_number+self.chunk_size,self.column_number))
-        larger_data_bag[:self.data_point_number,:] = self.data_bag
-        self.data_bag = larger_data_bag
-
-    def crop(self):
-
-        larger_data_bag = np.empty((self.data_point_number,self.column_number))
-        larger_data_bag = self.data_bag[:self.data_point_number,:]
-        self.data_bag = larger_data_bag
-
-    def to_data_curve(self,column_names,column_units):
-
-        data_dict = dict()
-        for i, column_name in enumerate(column_names):
-            try:
-                units = ureg.Unit(column_units[i])
-                data_dict[column_name] = self.data_bag[:,i]*ureg.Unit(column_units[i])
-            except:
-                pass # ditch column without units                
-
-        return DataCurve(**data_dict)
-
-
-
 class DataCurve(object):
 
     def __init__(self,*vargs,**kwargs):
 
+        self.chunk_size = 10
+
         self.parameter_dict = dict()
         self.column_dict = dict()
-        self.column_length = 0
+        self.column_names = list()
+        self.data_length = 0
+        self.extend_data_length = 0
         self.curve_name = 'DataCurve'
 
         for arg in vargs:
@@ -69,11 +24,14 @@ class DataCurve(object):
                 self._apply_column_dict(arg.column_dict,new_curve = False)
                 self._apply_parameter_dict(arg.parameter_dict,new_curve = False)
 
-        for kw in kwargs:
-            if hasattr(kwargs[kw],'shape'):
-                self.add_column(kw,kwargs[kw])
-            else:
-                self.add_parameter(kw,kwargs[kw])
+        if 'column_names' in kwargs and 'column_units_labels' in kwargs:
+            self.init_columns(kwargs['column_names'],kwargs['column_units_labels'])
+        else:
+            for kw in kwargs:
+                if hasattr(kwargs[kw],'shape'):
+                    self.add_column(kw,kwargs[kw])
+                else:
+                    self.add_parameter(kw,kwargs[kw])
 
     def __getattr__(self,name):
 
@@ -86,27 +44,82 @@ class DataCurve(object):
 
     def __str__(self):
 
-        info_str = '{0:s}\n'.format(self.curve_name)
+        info_str = '{0:s} ({1:d} data points)\n'.format(self.curve_name,self.data_length)
         if self.parameter_dict:
-            info_str += 'Parameters : \n'
             for parameter_name in self.parameter_dict:
-                info_str += parameter_name + ' : ' + str(self.parameter_dict[parameter_name]) + '\n'
-            info_str += ' --- ' + '\n' + 'Columns : \n'
+                info_str += parameter_name + ' : ' + str(self.parameter_dict[parameter_name]) + ', '
         if self.column_dict:
             for column_name in self.column_dict:
-                info_str += column_name + ' (' + str(self.column_dict[column_name].units) + ')\n'
+                info_str += column_name + ' (' + str(self.column_dict[column_name].units) + '), '
 
-        return info_str[:-1]
+        return info_str[:-2]
+
+    def init_columns(self,column_names,column_units_labels):
+
+        for i, column_name in enumerate(column_names):
+            print(column_units_labels[i])
+            try:
+                column_units = ureg(column_units_labels[i])
+            except:
+                column_units = ureg('')
+                Warning('Pint could not parse {0:s} to units. Column will be dimensionless')
+            self.add_column(column_name,np.empty([0,])*column_units)
 
     def add_column(self,column_name,column_data):
 
-        if self.column_length:
-            if not len(column_data) == self.column_length:
+        if self.data_length:
+            if not len(column_data) == self.data_length:
                 raise Exception('Data length must be the same')
         else:
-            self.column_length = len(column_data)
+            self.data_length = len(column_data)
 
         self.column_dict[column_name] = column_data
+        self.column_names.append(column_name)
+
+    def add_data_point(self,values):
+
+        if not len(values) == self.column_number():
+            raise ValueError('New Data dimension ({0:d}) is not conform to the number of data columns ({1:d}).'.format(len(values),self.column_number()))
+
+        if self.extend_data_length == self.data_length:
+            self._extend_chunk()
+
+        if isinstance(values,dict):
+            new_data = values
+            if not new_data.keys() == self.column_dict.keys():
+                ValueError('Column name should already be present in DataCurve')
+
+        elif isinstance(values,list) or isinstance(values,np.ndarray):
+            new_data = dict(zip(self.column_names,values))
+
+        for column_name in self.column_dict:
+            if not hasattr(new_data[column_name],'units'):
+                new_data[column_name] = new_data[column_name]*self.column_dict[column_name].units
+            else:
+                new_data[column_name].ito(self.column_dict[column_name].units)
+            
+            self.column_dict[column_name][self.data_length] = new_data[column_name]
+
+        self.data_length += 1
+
+    def column_number(self):
+
+        return len(self.column_dict)
+
+    def _extend_chunk(self):
+
+        for column_name in self.column_dict:
+            larger_column_data = np.zeros((self.data_length+self.chunk_size,))*self.column_dict[column_name].units
+            larger_column_data[:self.data_length] = self.column_dict[column_name]
+            self.column_dict[column_name] = larger_column_data
+        self.extend_data_length = self.data_length+self.chunk_size
+
+    def crop(self):
+
+        for column_name in self.column_dict:
+            self.column_dict[column_name] = self.column_dict[column_name][:self.data_length]
+
+        self.extend_data_length = self.data_length+0
 
     def _apply_column_dict(self,column_dict,new_curve):
 
@@ -124,20 +137,22 @@ class DataCurve(object):
 
     def set_column_dict(self,column_dict):
 
-        column_lengths = list()
+        data_lengths = list()
         for column_name in column_dict:
-            column_lengths.append(len(column_dict[column_name]))
+            data_lengths.append(len(column_dict[column_name]))
 
-        column_length = np.unique(column_lengths)
-        if len(column_length) == 1:
+        data_length = np.unique(data_lengths)
+        if len(data_length) == 1:
             self.column_dict = column_dict
-            self.column_length = column_length[0]
+            self.data_length = data_length[0]
         else:
             raise Exception('Data length must be the same')
 
     def add_parameter(self,parameter_name,parameter_value):
 
         self.parameter_dict[parameter_name] = parameter_value
+
+    # Manipulation methods
 
     def equals_within_tolerance(self,column_name,value,tolerance):
 

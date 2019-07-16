@@ -1,6 +1,6 @@
 import numpy as np
 import re
-from .DataContainer import DataBag
+from .DataContainer import DataCurve
 
 class Reader(object):
 
@@ -28,12 +28,10 @@ class Reader(object):
         self.column_names, self.column_units, self.column_numbers = self.define_column_names_units_numbers()
         self._init_data_mapper()
         
-        data_bag = self._read_data()
+        data_curve = self._read_data()
 
-        if apply_units:
-            return data_bag.to_data_curve(self.column_names, self.column_units)
-        else:
-            return data_bag
+        return data_curve
+            
 
     def _open_file(self,file_path):
         """ Open a file. Set the file as the active file. 
@@ -50,10 +48,10 @@ class Reader(object):
             print("Cannot open {0:s}".format(file_path))
             raise
 
-    def _new_data_bag(self):
+    def _new_data_curve(self):
         """ Create the DataContainer with the field names and units """
         
-        return DataBag(len(self.column_names))
+        return DataCurve(column_names = self.column_names,column_units_labels = self.column_units)
 
     def define_column_names_units_numbers(self):
         """ Define three list : column_names, column_units and column_numbers. 
@@ -92,7 +90,9 @@ class Reader(object):
         return bool(line), new_data
 
     def _read_header(self):
-        """ Read the header of the active data file. This is Reader dependant."""
+        """ Read the header of the active data file. This is Reader dependant.
+        Should fill self._column_names and self._units with relevant strings
+        """
 
         pass
 
@@ -102,21 +102,21 @@ class Reader(object):
         Return the data formated into a DataContainer
         """
 
-        data_bag = self._new_data_bag()
+        data_curve = self._new_data_curve()
         while True:
-            try:
+            # try:
                 keep_reading, new_data = self._read_data_line()
                 if keep_reading:
                     if isinstance(new_data,np.ndarray):
-                        data_bag.add_data_point(new_data)
+                        data_curve.add_data_point(new_data)
                 else:
                     break
-            except:
-                break
+            # except:
+                # break
 
-        data_bag.crop()
+        data_curve.crop()
 
-        return data_bag
+        return data_curve
 
     def map_data_line(self,splited_line):
         """ Map a splited data line and map selected column in the same order as column_names """
@@ -130,6 +130,18 @@ class Reader(object):
                 pass
 
         return new_data
+
+    def get_column_names(self):
+
+        return self.column_names
+
+    def get_column_units(self):
+
+        return self.column_units
+
+    def get_column_index(self,column_name):
+
+        return self.column_names.index(column_name)
 
 class GenericDataReader(Reader):
     """ GenericDataReader can be customized to read any ASCII character separated data file """
@@ -162,7 +174,7 @@ class GenericDataReader(Reader):
             header_lines.append(self.f_id.readline())
 
 class DataColumnReader(Reader): # todo
-    def __init__(self,separator):
+    def __init__(self,separator = ','):
 
         self.separator = separator
 

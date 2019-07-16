@@ -3,6 +3,8 @@ from os import path
 from pint import UnitRegistry, set_application_registry
 ureg = UnitRegistry(system = 'mks')
 
+import time
+
 def read_PPMS_Resistivity_data_file():
 
     from AsciiDataFile.Readers import PPMSResistivityDataReader as Reader
@@ -108,25 +110,43 @@ def write_column_data_file():
     data_file = 'test_column.txt'
     data_file_wu = 'test_column_wu.txt'
 
-    writer = Writer(path.join(data_path,data_file),auto_numbering = False,separator = '\t')
-    writer_wu = WriterWithUnits(path.join(data_path,data_file_wu),auto_numbering = False,separator = '\t',column_width = 20)
+    writer = Writer(path.join(data_path,data_file),auto_numbering = False,separator = '\t',column_width = 15)
+    writer_wu = WriterWithUnits(path.join(data_path,data_file_wu),auto_numbering = False,separator = '\t',column_width = 15)
     
-    X = np.linspace(0,100)*ureg.second
-    Y = np.sin(X*1*ureg.hertz)*ureg.meter/ureg.tesla**3*ureg.microsecond
+    X = np.linspace(0,100,500)*ureg.second
+    Y = np.sin(X*1*ureg.hertz)*ureg.meter
 
     writer.add_data_column('X',X.magnitude,'{:~}'.format(X.units))
     writer.add_data_column('Y',Y.magnitude,'{:~}'.format(Y.units))
 
-
     writer_wu.add_data_column('X',X)
-    writer_wu.add_data_column('Y',Y)
-    writer_wu.add_data_column('Y',Y)
     writer_wu.add_data_column('Y',Y)
 
     writer.write()
     writer_wu.write()
 
+def write_column_data_file_2():
+
+    from AsciiDataFile.Writers import DataColumnWriterWithUnits as Writer
+    import numpy as np
+
+    data_path = 'data/'
+    data_file = 'test_column_continous.txt'
+
+    writer = Writer(path.join(data_path,data_file),auto_numbering = False,separator = '\t',column_width = 15)
+
+    X = np.linspace(0,100,500)*ureg.second
+    Y = np.sin(X*1*ureg.hertz)*ureg.meter
+    
+    writer.write_header(column_names = ['X','Y'],column_units = ['s','m'])
+
+    for i in range(len(X)):
+        writer.add_data_point([X[i],Y[i]])
+
+
 def read_column_data_file():
+
+    t0 = time.time()
 
     from AsciiDataFile.Readers import DataColumnReader as Reader
 
@@ -134,10 +154,12 @@ def read_column_data_file():
     data_file = 'test_column.txt'
 
     reader = Reader(separator = '\t')
-    data_bag = reader.read(path.join(data_path,data_file))
     data_curve = reader.read(path.join(data_path,data_file),apply_units = True)
 
     print(data_curve)
+    print(time.time()- t0)
+
+
 
 
 
@@ -146,8 +168,9 @@ def read_column_data_file():
 # read_PPMS_Heat_Capacity_data_file()
 # read_SQUID_data_file()
 # read_PPMS_ACMS_data_file()
-read_MD_data_file()
+# read_MD_data_file()
 # read_XRD_generic_data_file()
 # write_column_data_file()
+write_column_data_file_2()
 # read_column_data_file()
 # read_AcquisXD()
