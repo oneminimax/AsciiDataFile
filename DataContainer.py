@@ -10,7 +10,7 @@ class DataCurve(object):
 
     def __init__(self,*vargs,**kwargs):
 
-        self.chunk_size = 10
+        self.chunk_size = 100
 
         self.parameter_dict = dict()
         self.column_dict = dict()
@@ -261,5 +261,12 @@ class DataCurve(object):
 
         return np.linspace(0,max_x_value.magnitude,int(max_x_value/x_step)+1)*getattr(self,x_column_name).units
 
+    def get_values_array(self):
 
+        self.crop()
+        values_array = np.zeros((self.data_length,len(self.column_names)))
+        for i, column_name in enumerate(self.column_names):
+            values_array[:,i] = self.column_dict[column_name].magnitude
+
+        return values_array
     

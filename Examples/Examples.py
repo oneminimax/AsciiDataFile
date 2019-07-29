@@ -103,31 +103,26 @@ def read_AcquisXD():
 def write_column_data_file():
 
     from AsciiDataFile.Writers import DataColumnWriter as Writer
-    from AsciiDataFile.Writers import DataColumnWriterWithUnits as WriterWithUnits
+    from AsciiDataFile.DataContainer import DataCurve
     import numpy as np
 
     data_path = 'data/'
     data_file = 'test_column.txt'
-    data_file_wu = 'test_column_wu.txt'
 
-    writer = Writer(path.join(data_path,data_file),auto_numbering = False,separator = '\t',column_width = 15)
-    writer_wu = WriterWithUnits(path.join(data_path,data_file_wu),auto_numbering = False,separator = '\t',column_width = 15)
+    writer = Writer(path.join(data_path,data_file),auto_numbering = False,separator = ', ',column_width = 15)
     
     X = np.linspace(0,100,500)*ureg.second
     Y = np.sin(X*1*ureg.hertz)*ureg.meter
 
-    writer.add_data_column('X',X.magnitude,'{:~}'.format(X.units))
-    writer.add_data_column('Y',Y.magnitude,'{:~}'.format(Y.units))
+    data_curve = DataCurve()
+    data_curve.add_column('X',X)
+    data_curve.add_column('Y',Y)
 
-    writer_wu.add_data_column('X',X)
-    writer_wu.add_data_column('Y',Y)
-
-    writer.write()
-    writer_wu.write()
+    writer.write_data_curve(data_curve)
 
 def write_column_data_file_2():
 
-    from AsciiDataFile.Writers import DataColumnWriterWithUnits as Writer
+    from AsciiDataFile.Writers import DataColumnWriter as Writer
     import numpy as np
 
     data_path = 'data/'
@@ -154,7 +149,7 @@ def read_column_data_file():
     data_file = 'test_column.txt'
 
     reader = Reader(separator = '\t')
-    data_curve = reader.read(path.join(data_path,data_file),apply_units = True)
+    data_curve = reader.read(path.join(data_path,data_file))
 
     print(data_curve)
     print(time.time()- t0)
@@ -193,9 +188,9 @@ def modify_column_data_file():
 # read_MD_data_file()
 # read_XRD_generic_data_file()
 # write_column_data_file()
-# write_column_data_file_2()
+write_column_data_file_2()
 
-modify_column_data_file()
+# modify_column_data_file()
 
 # read_column_data_file()
 # read_AcquisXD()

@@ -10,9 +10,6 @@ class Writer(object):
         self.separator = separator
         self.column_width = column_width
 
-        self.column_datas = list()
-        self.column_names = list()
-        self.column_units = list() #strings
         self.column_number = 0
         self.column_length = 0
 
@@ -47,29 +44,33 @@ class Writer(object):
 
         self.file_name = new_file_name
 
-    def write_header(self,column_names = None,column_units = None):
+    def write_header(self,column_names,column_units = None):
 
-        if column_names is None:
-            self._write_header(self.column_names,self.column_units)
-        else:
-            self._write_header(column_names,column_units)
+        self.column_number = len(column_names)
+        self._write_header(column_names,column_units)
 
-    def _write_header(self,column_names,column_units):
+    def _write_header(self,column_names,column_units = None):
         pass # to be defined by writer type
 
-    def write_datas(self,column_datas = None):
+    def write_values(self,values):
 
-        if column_datas is None:
-            self._write_datas(self._make_data_array())
+        if self.column_number == 0:
+            self._write_datas(values)
         else:
-            self._write_datas(column_datas)
+            values_shape = values.shape
+            if values_shape[0] == self.column_number:
+                self._write_values(values)
+            elif values_shape[1] == self.column_number:
+                self._write_values(np.transpose(values))
+            else:
+                raise()
 
-    def _write_datas(self,datas):
+    def _write_values(self,values):
 
-        for i in range(datas.shape[0]):
-            self.add_data_point(datas[i])
+        for i in range(values.shape[0]):
+            self.add_data_point(values[i,:])
 
-    def write(self,column_names = None,column_units = None,column_datas = None):
+    def write(self,column_names,values,column_units = None):
 
         self.write_header(column_names,column_units)
         self.write_datas(column_datas)
@@ -92,63 +93,33 @@ class Writer(object):
             self.f_id.write(line[:-len(self.separator)] + "\n")
             self.f_id.flush()
 
-    def _make_data_array(self):
+    def write_data_curve(self,data_curve):
 
-        data_array = np.zeros((self.column_length,self.column_number))
-        for i, column_data in enumerate(self.column_datas):
-            data_array[:,i] = column_data
+        column_names = data_curve.column_names
+        column_units = data_curve.get_column_units(as_string = True)
 
-        return data_array
-
-    # Build file by column
-
-    def add_data_column(self,name,data,units = None):
-
-        if self.column_number == 0:
-            self.column_length = len(data)
-        else:
-            if not self.column_length == len(data):
-                raise('Column length should match previous.')
-
-        self.column_names.append(name)
-        self.column_datas.append(data)
-        self.column_units.append(units)
-
-        self.column_number += 1
-
-    # build file by piece
-
-    def set_column_names(self,column_names):
-
-        self.column_names = column_names
-
-    def set_column_units(self,column_units):
-
-        self.column_units = column_units
-
-    def set_column_data(self,column_datas):
-
-        self.column_datas = column_datas
+        self._write_header(column_names,column_units)
+        self._write_values(data_curve.get_values_array())
 
 class MDDataFileWriter(Writer):
     
-    def write_header(self,column_names,column_units = list()):
+    def write_header(self,column_names,column_units = None):
 
         self.f_id.write("{0:s}\n".format(time.strftime("%c")))
         self.f_id.write("[Header]\n")
-        if len(column_units) > 0:
-            for i, column_name in enumerate(column_names):
-                self.f_id.write("Column {0:2d} : {1:20s}\t{2:s}\n".format(i, column_name, column_units[i]))
-        else:
+        if column_units is None:
             for i, column_name in enumerate(column_names):
                 self.f_id.write("Column {0:2d} : {1:20s}\n".format(i, column_name))
+        else:
+            for i, column_name in enumerate(column_names):
+                self.f_id.write("Column {0:2d} : {1:20s}\t{2:s}\n".format(i, column_name, column_units[i]))
 
         self.f_id.write("[Header end]\n\n")
         self.f_id.flush()
 
 class DataColumnWriter(Writer):
 
-    def _write_header(self,column_names,column_units):
+    def _write_header(self,column_names,column_units = None):
 
         head_line = ''
         for i, column_name in enumerate(column_names):
@@ -162,16 +133,4 @@ class DataColumnWriter(Writer):
             self.f_id.write(head_line[:-len(self.separator)] + "\n")
             self.f_id.flush()
 
-class DataColumnWriterWithUnits(DataColumnWriter):
-
-    def add_data_column(self,name,data):
-
-        super().add_data_column(name,data.magnitude,'{:~P}'.format(data.units))
-
-    def write_data_curve(self,data_curve):
-
-        for column_name in data_curve.column_names:
-            self.add_data_column(column_name,data_curve.column_dict[column_name])
-
-        self.write_header()
-        self.write_datas()
+    
