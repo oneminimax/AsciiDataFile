@@ -167,3 +167,11 @@ class DataColumnWriterWithUnits(DataColumnWriter):
     def add_data_column(self,name,data):
 
         super().add_data_column(name,data.magnitude,'{:~P}'.format(data.units))
+
+    def write_data_curve(self,data_curve):
+
+        for column_name in data_curve.column_names:
+            self.add_data_column(column_name,data_curve.column_dict[column_name])
+
+        self.write_header()
+        self.write_datas()

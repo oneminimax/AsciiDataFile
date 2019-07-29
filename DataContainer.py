@@ -44,15 +44,19 @@ class DataCurve(object):
 
     def __str__(self):
 
-        info_str = '{0:s} ({1:d} data points)\n'.format(self.curve_name,self.data_length)
+        info_str = f'{self.curve_name:s} ({self.data_length:d} data points)\n'
         if self.parameter_dict:
             for parameter_name in self.parameter_dict:
                 info_str += parameter_name + ' : ' + str(self.parameter_dict[parameter_name]) + ', '
         if self.column_dict:
             for column_name in self.column_dict:
-                info_str += column_name + ' (' + str(self.column_dict[column_name].units) + '), '
+                info_str += ' ' + column_name + ' (' + str(self.column_dict[column_name].units) + ')\n'
 
-        return info_str[:-2]
+        return info_str[:-1]
+
+    def convert(self,new_class):
+
+        return new_class(self)
 
     def init_columns(self,column_names,column_units_labels):
 
@@ -74,6 +78,19 @@ class DataCurve(object):
 
         self.column_dict[column_name] = column_data
         self.column_names.append(column_name)
+
+    def update_column(self,column_name,column_data):
+
+        if not len(column_data) == self.data_length:
+            raise Exception('Data length must be the same')
+
+        self.column_dict[column_name] = column_data
+
+    def rename_column(self,old_name,new_name):
+
+        if old_name in self.column_names:
+            self.column_names[self.column_names.index(old_name)] = new_name
+            self.column_dict[new_name] = self.column_dict.pop(old_name)
 
     def add_data_point(self,values):
 
@@ -143,6 +160,7 @@ class DataCurve(object):
         data_length = np.unique(data_lengths)
         if len(data_length) == 1:
             self.column_dict = column_dict
+            self.column_names = list(column_dict.keys())
             self.data_length = data_length[0]
         else:
             raise Exception('Data length must be the same')
@@ -155,20 +173,21 @@ class DataCurve(object):
 
         return self.column_names
 
-    def get_column_units(self):
+    def get_column_units(self,as_string = False):
 
         column_units = list()
 
         for column_name in self.column_names:
-            column_units.append(self.column_dict[column_name].units)
+            if as_string:
+                column_units.append('{:~P}'.format(self.column_dict[column_name].units))
+            else:
+                column_units.append(self.column_dict[column_name].units)
 
         return column_units
 
     def get_column_by_name(self,column_name):
 
         return self.column_dict[column_name][:self.data_length]
-
-
 
     # Manipulation methods
 
@@ -215,5 +234,32 @@ class DataCurve(object):
         f = interp1d(self.column_dict[x_column_name].magnitude,self.column_dict[y_column_name].magnitude,fill_value='extrapolate')
 
         return f(x_values.to(self.column_dict[x_column_name].units).magnitude)*self.column_dict[y_column_name].units
+
+    def symetrize(self,x_column_name,sym_y_column_names = list(),antisym_y_column_names = list(),x_values = None,x_step = None,new_curve = False):
+
+        if x_values is None and not x_step is None:
+            x_values = self.auto_sym_x_values(x_column_name,x_step)
+        elif not x_values is None and x_step is None:
+            pass
+        else:
+            raise(ValueError('Most provide x_values or x_step'))
+
+        new_column_dict = dict()
+        for column_name in self.column_names:
+            f = interp1d(getattr(self,x_column_name).magnitude,getattr(self,column_name).magnitude,fill_value='extrapolate')
+            if column_name in sym_y_column_names:
+                new_column_dict[column_name] = (f(x_values.magnitude) + f(-x_values.magnitude))/2 * getattr(self,column_name).units
+
+            if column_name in antisym_y_column_names:
+                new_column_dict[column_name] = (f(x_values.magnitude) - f(-x_values.magnitude))/2 * getattr(self,column_name).units
+        
+        return self._apply_column_dict(new_column_dict,new_curve)
+
+    def auto_sym_x_values(self,x_column_name,x_step):
+
+        max_x_value = np.max(np.round(getattr(self,x_column_name)/x_step))*x_step
+
+        return np.linspace(0,max_x_value.magnitude,int(max_x_value/x_step)+1)*getattr(self,x_column_name).units
+
 
     

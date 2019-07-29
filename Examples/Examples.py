@@ -160,7 +160,29 @@ def read_column_data_file():
     print(time.time()- t0)
 
 
+def modify_column_data_file():
 
+    t0 = time.time()
+
+    from AsciiDataFile.Readers import DataColumnReader as Reader
+    from AsciiDataFile.Writers import DataColumnWriterWithUnits as Writer
+
+    data_path = 'data/'
+    data_file = 'test_column.txt'
+
+    reader = Reader(separator = '\t')
+    data_curve = reader.read(path.join(data_path,data_file))
+
+    print(data_curve.X)
+
+    data_curve.update_column('X',-data_curve.X)
+    # data_curve.X = -data_curve.X
+    print(data_curve.X)
+
+    writer = Writer(path.join(data_path,'test_column_mod.txt'),auto_numbering = False)
+    writer.write_data_curve(data_curve)
+
+    print(time.time()- t0)
 
 
 
@@ -171,6 +193,9 @@ def read_column_data_file():
 # read_MD_data_file()
 # read_XRD_generic_data_file()
 # write_column_data_file()
-write_column_data_file_2()
+# write_column_data_file_2()
+
+modify_column_data_file()
+
 # read_column_data_file()
 # read_AcquisXD()
