@@ -1,6 +1,6 @@
 import numpy as np
 import re
-from .DataContainer import DataCurve
+from .DataContainer import DataCurve, DataCurvePint
 
 class Reader(object):
 
@@ -14,7 +14,7 @@ class Reader(object):
 
         return str(self.get_column_names())
 
-    def read(self,file_path):
+    def read(self,file_path,use_units = True):
         """ Read a file 
 
         file_path : full path to the data file
@@ -28,7 +28,7 @@ class Reader(object):
         self.column_names, self.column_units, self.column_numbers = self.define_column_names_units_numbers()
         self._init_data_mapper()
         
-        data_curve = self._read_data()
+        data_curve = self._read_data(use_units)
 
         return data_curve
             
@@ -48,10 +48,15 @@ class Reader(object):
             print("Cannot open {0:s}".format(file_path))
             raise
 
-    def _new_data_curve(self):
+    def _new_data_curve(self,use_units = True):
         """ Create the DataContainer with the field names and units """
         
-        return DataCurve(column_names = self.column_names,column_units_labels = self.column_units)
+        if use_units:
+            data_curve = DataCurvePint(column_names = self.column_names,column_units_labels = self.column_units)
+        else:
+            data_curve = DataCurve(column_names = self.column_names,column_units_labels = self.column_units)
+
+        return data_curve
 
     def define_column_names_units_numbers(self):
         """ Define three list : column_names, column_units and column_numbers. 
@@ -96,13 +101,13 @@ class Reader(object):
 
         pass
 
-    def _read_data(self):
+    def _read_data(self,use_units):
         """ Read the data part of the file 
 
         Return the data formated into a DataContainer
         """
 
-        data_curve = self._new_data_curve()
+        data_curve = self._new_data_curve(use_units)
         while True:
             # try:
                 keep_reading, new_data = self._read_data_line()
@@ -324,11 +329,11 @@ class PPMSResistivityDataReader(QDReader):
             (5,'sample position','deg')
             ]
 
-    def read(self,file_path,sample_number = 0):
+    def read(self,file_path,sample_number = 0,*vargs,**kwargs):
 
         self.add_channel_column_tuples(sample_number)
 
-        return Reader.read(self,file_path)
+        return Reader.read(self,file_path,*vargs,**kwargs)
 
     def add_channel_column_tuples(self,sample_number):
         if sample_number == 0:

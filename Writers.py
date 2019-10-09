@@ -98,6 +98,8 @@ class Writer(object):
         column_names = data_curve.column_names
         column_units = data_curve.get_column_units(as_string = True)
 
+        print(column_units)
+
         self._write_header(column_names,column_units)
         self._write_values(data_curve.get_values_array())
 
@@ -132,5 +134,4 @@ class DataColumnWriter(Writer):
         if head_line:
             self.f_id.write(head_line[:-len(self.separator)] + "\n")
             self.f_id.flush()
-
     
