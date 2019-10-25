@@ -184,6 +184,14 @@ class DataCurve(object):
 
         return self.column_dict[column_name][:self.data_length]
 
+    def get_columns(self,column_names):
+
+        columns = list()
+        for column_name in column_names:
+            columns.append(self.get_column(column_name))
+
+        return columns
+
     # Manipulation methods
 
     def equals_within_tolerance(self,column_name,value,tolerance):
@@ -205,6 +213,16 @@ class DataCurve(object):
             new_column_dict[column_name] = getattr(self,column_name)
 
         return self._apply_column_dict(new_column_dict,True)
+
+    def sort_by(self,column_name):
+
+        sort_i = np.argsort(getattr(self,column_name).magnitude)
+        new_column_dict = dict()
+        for column_name in self.column_names:
+            new_column_dict[column_name] = getattr(self,column_name)[sort_i]
+
+        return self._apply_column_dict(new_column_dict,False)
+
 
     def select_value(self,column_name,value,tolerance,new_curve = False):
         
@@ -250,10 +268,10 @@ class DataCurve(object):
         for column_name in self.column_names:
             f = interp1d(getattr(self,x_column_name),getattr(self,column_name),fill_value='extrapolate')
             if column_name in sym_y_column_names:
-                new_column_dict[column_name] = (f(x_values.magnitude) + f(-x_values.magnitude))/2
+                new_column_dict[column_name] = (f(x_values) + f(-x_values))/2
 
             if column_name in antisym_y_column_names:
-                new_column_dict[column_name] = (f(x_values.magnitude) - f(-x_values.magnitude))/2
+                new_column_dict[column_name] = (f(x_values) - f(-x_values))/2
         
         return self._apply_column_dict(new_column_dict,new_curve)
 
