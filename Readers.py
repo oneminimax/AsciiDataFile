@@ -1,6 +1,6 @@
 import numpy as np
 import re
-from .DataContainer import DataCurve, DataCurvePint
+from .DataContainer import DataCurve
 
 class Reader(object):
 
@@ -14,7 +14,7 @@ class Reader(object):
 
         return str(self.get_column_names())
 
-    def read(self,file_path,use_units = True):
+    def read(self,file_path):
         """ Read a file 
 
         file_path : full path to the data file
@@ -28,10 +28,9 @@ class Reader(object):
         self.column_names, self.column_units, self.column_numbers = self.define_column_names_units_numbers()
         self._init_data_mapper()
         
-        data_curve = self._read_data(use_units)
+        data_curve = self._read_data()
 
-        return data_curve
-            
+        return data_curve            
 
     def _open_file(self,file_path):
         """ Open a file. Set the file as the active file. 
@@ -48,13 +47,10 @@ class Reader(object):
             print("Cannot open {0:s}".format(file_path))
             raise
 
-    def _new_data_curve(self,use_units = True):
+    def _new_data_curve(self):
         """ Create the DataContainer with the field names and units """
         
-        if use_units:
-            data_curve = DataCurvePint(column_names = self.column_names,column_units_labels = self.column_units)
-        else:
-            data_curve = DataCurve(column_names = self.column_names,column_units_labels = self.column_units)
+        data_curve = DataCurve(column_names = self.column_names,column_units_labels = self.column_units)
 
         return data_curve
 
@@ -101,13 +97,13 @@ class Reader(object):
 
         pass
 
-    def _read_data(self,use_units):
+    def _read_data(self):
         """ Read the data part of the file 
 
         Return the data formated into a DataContainer
         """
 
-        data_curve = self._new_data_curve(use_units)
+        data_curve = self._new_data_curve()
         while True:
             # try:
                 keep_reading, new_data = self._read_data_line()
@@ -119,7 +115,7 @@ class Reader(object):
             # except:
                 # break
 
-        data_curve.crop()
+        data_curve._crop()
 
         return data_curve
 

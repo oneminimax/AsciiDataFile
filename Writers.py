@@ -4,11 +4,12 @@ import time
 import re
 
 class Writer(object):
-    def __init__(self,file_name,auto_numbering = True,separator = ', ',column_width = 15):
+    def __init__(self,file_name,auto_numbering = True,separator = ', ',column_width = 15,decimal = '.'):
         self.file_name = file_name
         self.auto_numbering = auto_numbering
         self.separator = separator
         self.column_width = column_width
+        self.decimal = decimal
 
         self.column_number = 0
         self.column_length = 0
@@ -89,16 +90,18 @@ class Writer(object):
                 sep = self.separator
                 )
 
+        if self.decimal is ',':
+            line = line.replace('.',',')
+
+
         if line:
             self.f_id.write(line[:-len(self.separator)] + "\n")
             self.f_id.flush()
 
     def write_data_curve(self,data_curve):
 
-        column_names = data_curve.column_names
-        column_units = data_curve.get_column_units(as_string = True)
-
-        print(column_units)
+        column_names = data_curve.get_column_names()
+        column_units = data_curve.get_column_unitss()
 
         self._write_header(column_names,column_units)
         self._write_values(data_curve.get_values_array())

@@ -1,10 +1,89 @@
 import numpy as np
 
-from pint import UnitRegistry, set_application_registry
-ureg = UnitRegistry(system = 'mks')
-set_application_registry(ureg)
-
 from scipy.interpolate import interp1d
+
+class Column(object):
+
+    def __init__(self,name,units,data = list()):
+
+        self.name = name
+        self.set_units(units)
+        self.set_data(data)
+
+        self.update_length()
+
+    def __len__(self):
+
+        return len(self.data)
+
+    def __str__(self):
+
+        return f'{self.name} ({self.units}) : {self.data_length} points'
+
+    def __repr__(self):
+
+        return f'{self.name} ({self.units}) : {self.data_length} points'
+
+    def set_units(self,units):
+
+        self.units = units
+
+    def set_data(self,data):
+
+        self.data = np.array(data)
+
+    def get_data(self):
+
+        return self.data[:self.data_length]
+
+    def get_units(self):
+
+        return self.units
+
+    def rename(self,name):
+
+        self.name = name
+
+    def add_data_point(self,value):
+
+        self.data[self.data_length] = value
+        
+        self.data_length += 1
+
+    def filter(self,mask):
+
+        self.set_data(self.data[mask])
+        self.update_length()
+
+    def update_length(self):
+
+        self.data_length = len(self.data)
+        self.extend_data_length = len(self.data)
+
+    def _extend_chunk(self,chunk_size):
+
+        larger_data = np.zeros((self.data_length + chunk_size,))
+        larger_data[:self.data_length] = self.data
+        self.data = larger_data
+        self.extend_data_length = self.data_length + chunk_size
+
+    def _crop(self):
+
+        self.data = self.data[:self.data_length]
+        self.extend_data_length = self.data_length+0
+
+    def _copy(self):
+
+        return self.__class__(self.name,self.units,self.get_data())
+
+    def equals_within_tolerance(self,value,tolerance):
+
+        return np.abs((self.get_data() - value)) < tolerance
+
+    def in_range(self,limits):
+
+        data = self.get_data()
+        return np.logical_and(data > limits[0], data < limits[1])
 
 class DataCurve(object):
 
@@ -14,61 +93,69 @@ class DataCurve(object):
 
         self.parameter_dict = dict()
         self.column_dict = dict()
-        self.column_names = list()
-        self.column_units_dict = dict()
+
         self.data_length = 0
         self.extend_data_length = 0
-        self.curve_name = 'DataCurve'
+        self.name = 'DataCurve'
 
         for arg in vargs:
             if isinstance(arg,DataCurve):
-                self._apply_column_dict(arg.column_dict,new_curve = False)
-                self._apply_parameter_dict(arg.parameter_dict,new_curve = False)
+                self.set_column_dict(arg.column_dict)
+                self.set_parameter_dict(arg.parameter_dict)
+                self.data_length = arg.data_length
+                self.extend_data_length = self.extend_data_length
 
         if 'column_names' in kwargs and 'column_units_labels' in kwargs:
             self.init_columns(kwargs['column_names'],kwargs['column_units_labels'])
-        else:
-            for kw in kwargs:
-                if hasattr(kwargs[kw],'shape'):
-                    self.add_column(kw,kwargs[kw])
-                else:
-                    self.add_parameter(kw,kwargs[kw])
+        elif 'column_dict' in kwargs:
+            self.set_column_dict(kwargs['column_dict'])
 
     def __getattr__(self,name):
 
         if name in self.column_dict:
-            return self.column_dict[name]
+            return self.column_dict[name].get_data()
         
         var_name = name.replace('_',' ')
         if var_name in self.column_dict:
-            return self.column_dict[var_name]
+            return self.column_dict[var_name].get_data()
 
     def __str__(self):
 
-        info_str = f'{self.curve_name:s} ({self.data_length:d} data points)\n'
+        info_str = f'{self.name:s} ({self.data_length:d} data points)\n'
         if self.parameter_dict:
             for parameter_name in self.parameter_dict:
                 info_str += parameter_name + ' : ' + str(self.parameter_dict[parameter_name]) + ', '
         if self.column_dict:
-            for column_name in self.column_dict:
-                info_str += ' ' + column_name + ' (' + str(self.column_units_dict[column_name]) + ')\n'
+            for column_name, column in self.column_dict.items():
+                info_str += ' ' + column_name + ' (' + str(column.units) + ')\n'
 
         return info_str[:-1]
+
+    def _copy_column_dict(self):
+
+        new_column_dict = dict()
+        for column_name, column in self.column_dict.items():
+            new_column_dict[column_name] = column._copy()
+
+        return new_column_dict
 
     def convert(self,new_class):
 
         return new_class(self)
 
-    def init_columns(self,column_names,column_units_labels):
-
+    def init_columns(self,column_names,column_units_labels = []):
+        
         if len(column_names) == len(column_units_labels):
             for i, (column_name,column_units_label) in enumerate(zip(column_names,column_units_labels)):
-                self.add_column(column_name,np.empty([0,]),column_units_label)
+                self.add_column(column_name,column_units_label)
         else:
             for i, column_name in enumerate(column_names):
-                self.add_column(column_name,np.empty([0,]),'')
+                self.add_column(column_name,'')
 
-    def add_column(self,column_name,column_data,column_units_label = None):
+    def add_column(self,column_name,column_units_label,column_data = None):
+
+        if column_data is None:
+            column_data = np.empty([0,])
 
         if self.data_length:
             if not len(column_data) == self.data_length:
@@ -76,23 +163,25 @@ class DataCurve(object):
         else:
             self.data_length = len(column_data)
 
-        self.column_dict[column_name] = column_data
-        self.column_names.append(column_name)
-        if column_units_label is None:
-            column_units_label = ''
-        self.column_units_dict[column_name] = column_units_label
+        self.column_dict[column_name] = Column(column_name,column_units_label,column_data)
 
-    def update_column(self,column_name,column_data):
+    def add_parameter(self,parameter_name,parameter_value):
+
+        self.parameter_dict[parameter_name] = parameter_value
+
+    def update_column(self,column_name,column_data,units = None):
 
         if not len(column_data) == self.data_length:
             raise Exception('Data length must be the same')
 
-        self.column_dict[column_name] = column_data
+        self.column_dict[column_name].set_data(column_data)
+        if units is not None:
+            self.column_dict[column_name].set_units(units)
 
     def rename_column(self,old_name,new_name):
 
-        if old_name in self.column_names:
-            self.column_names[self.column_names.index(old_name)] = new_name
+        if old_name in self.get_column_names():
+            self.column_dict[old_name].rename(new_name)
             self.column_dict[new_name] = self.column_dict.pop(old_name)
 
     def add_data_point(self,values):
@@ -109,10 +198,10 @@ class DataCurve(object):
                 ValueError('Column name should already be present in DataCurve')
 
         elif isinstance(values,list) or isinstance(values,np.ndarray):
-            new_data = dict(zip(self.column_names,values))
+            new_data = dict(zip(self.get_column_names(),values))
 
         for column_name in self.column_dict:
-            self.column_dict[column_name][self.data_length] = new_data[column_name]
+            self.column_dict[column_name].add_data_point(new_data[column_name])
         
         self.data_length += 1
 
@@ -123,31 +212,23 @@ class DataCurve(object):
     def _extend_chunk(self):
 
         for column_name in self.column_dict:
-            larger_column_data = np.zeros((self.data_length+self.chunk_size,))
-            larger_column_data[:self.data_length] = self.column_dict[column_name]
-            self.column_dict[column_name] = larger_column_data
+            self.column_dict[column_name]._extend_chunk(self.chunk_size)
         self.extend_data_length = self.data_length+self.chunk_size
 
-    def crop(self):
+    def _crop(self):
 
         for column_name in self.column_dict:
-            self.column_dict[column_name] = self.column_dict[column_name][:self.data_length]
+            self.column_dict[column_name]._crop()
 
         self.extend_data_length = self.data_length+0
 
-    def _apply_column_dict(self,column_dict,new_curve):
 
-        if new_curve:
-            return self.__class__(**column_dict,**self.parameter_dict)
-        else:
-            self.set_column_dict(column_dict)
+    def _check_column_name(self):
 
-    def _apply_parameter_dict(self,parameter_dict,new_curve):
+        for column_name, column in self.column_dict.items():
+            column.rename(column_name)
 
-        if new_curve:
-            return self.__class__(**column_dict,**self.parameter_dict)
-        else:
-            self.parameter_dict = parameter_dict
+    ''' Sets '''
 
     def set_column_dict(self,column_dict):
 
@@ -158,104 +239,137 @@ class DataCurve(object):
         data_length = np.unique(data_lengths)
         if len(data_length) == 1:
             self.column_dict = column_dict
-            self.column_names = list(column_dict.keys())
             self.data_length = data_length[0]
+            self.extend_data_length = data_length[0]
         else:
             raise Exception('Data length must be the same')
 
-    def add_parameter(self,parameter_name,parameter_value):
+        self._check_column_name()
 
-        self.parameter_dict[parameter_name] = parameter_value
+    def set_parameter_dict(self,parameter_dict):
+
+        self.parameter_dict = parameter_dict
+
+    ''' Gets '''
 
     def get_column_names(self):
 
-        return self.column_names
+        return list(self.column_dict.keys())
 
-    def get_column_units(self,as_string = False):
+    def get_column_unitss(self):
 
-        column_units = list()
+        column_unitss = list()
 
-        for column_name in self.column_names:
-            column_units.append(self.column_units_dict[column_name])
+        for column_name, column in self.column_dict.items():
+            column_unitss.append(self.column_dict[column_name].get_units())
 
-        return column_units
+        return column_unitss
+
+    def get_column_data(self,column_name):
+
+        return self.column_dict[column_name].get_data()
 
     def get_column(self,column_name):
 
-        return self.column_dict[column_name][:self.data_length]
+        return self.column_dict[column_name].get_data()
 
     def get_columns(self,column_names):
 
         columns = list()
         for column_name in column_names:
-            columns.append(self.get_column(column_name))
+            columns.append(self.get_column_data(column_name))
 
         return columns
 
+    def get_column_units(self,column_name):
+
+        return self.column_dict[column_name].get_units()
+
     # Manipulation methods
-
-    def equals_within_tolerance(self,column_name,value,tolerance):
-
-        return np.abs((getattr(self,column_name) - value)) < tolerance
 
     def filter(self,mask,new_curve = False):
 
-        new_column_dict = dict()
-        for column_name in self.column_dict:
-            new_column_dict[column_name] = getattr(self,column_name)[mask]
+        if new_curve:
+            column_dict = self._copy_column_dict()
+        else:
+            column_dict = self.column_dict
 
-        return self._apply_column_dict(new_column_dict,new_curve)
+        for column_name, column in column_dict.items():
+            column.filter(mask)
+
+        if new_curve:
+            return self.__class__(column_dict = column_dict,parameter_dict = self.parameter_dict)
 
     def filter_column(self,column_names):
 
         new_column_dict = dict()
         for column_name in column_names:
-            new_column_dict[column_name] = getattr(self,column_name)
+            column = self.column_dict[column_name]
+            new_column_dict[column_name] = Column(column_name,column.units,column.data)
+            #getattr(self,column_name)
 
-        return self._apply_column_dict(new_column_dict,True)
+        self.set_column_dict(new_column_dict)
+
+        return self
 
     def sort_by(self,column_name):
 
-        sort_i = np.argsort(getattr(self,column_name).magnitude)
+        sort_i = np.argsort(self.column_dict[column_name].get_data())
         new_column_dict = dict()
-        for column_name in self.column_names:
-            new_column_dict[column_name] = getattr(self,column_name)[sort_i]
-
-        return self._apply_column_dict(new_column_dict,False)
-
+        for column_name, column in self.column_dict.items():
+            column.set_data(column.get_data()[sort_i])
 
     def select_value(self,column_name,value,tolerance,new_curve = False):
         
-        mask = self.equals_within_tolerance(column_name,value,tolerance)
+        mask = self.column_dict[column_name].equals_within_tolerance(value,tolerance)
+        return self.filter(mask,new_curve)
+
+    def select_range(self,column_name,limits,new_curve = False):
+
+        mask = self.column_dict[column_name].in_range(limits)
         return self.filter(mask,new_curve)
 
     def select_direction(self,column_name,direction,new_curve = False):
 
-        mask = np.gradient(getattr(self,column_name).magnitude)*direction > 0
+        mask = np.gradient(self.get_column_data(column_name))*direction > 0
         return self.filter(mask,new_curve)
 
-    def average_multiple_measurement(self,select_column_name,value_step,new_curve = False):
+    def average_multiple_measurement(self,select_column_name,value_step):
 
-        unique_values = np.unique(np.round(self.column_dict[select_column_name]/value_step))*value_step
+        unique_values = np.unique(np.round(self.get_column_data(select_column_name)/value_step))*value_step
         
-        new_column_dict = dict()
-
-        for column_name in self.column_dict:
-            new_column_dict[column_name] = np.zeros(unique_values.shape)
+        select_column_data = self.get_column_data(select_column_name)
+        for column_name, column in self.column_dict.items():
+            new_data = np.zeros(unique_values.shape)
             for i_value, value in enumerate(unique_values):
-                ind = (self.column_dict[select_column_name] - value)**2 < value_step**2/2
-            
-                new_column_dict[column_name][i_value] = np.average(self.column_dict[column_name][ind])
+                ind = (select_column_data - value)**2 < value_step**2/2
+                new_data[i_value] = np.average(column.get_data()[ind])
 
-        return self._apply_column_dict(new_column_dict,new_curve)
+            column.set_data(new_data)
+        self.data_length = len(unique_values)
+        self.extend_data_length = len(unique_values)
+
+    def interpolate(self,x_column_name,x_values):
+
+        x_column_data = self.get_column_data(x_column_name)
+        new_column_dict = dict()
+        for column_name, column in self.column_dict.items():
+            if column_name == x_column_name:
+                new_column = Column(column_name,column.units,x_values)
+            else:
+                new_column = Column(column_name,column.units,self.y_at_x(x_column_name,column_name,x_values))
+
+            new_column_dict[column_name] = new_column
+
+        return self.__class__(column_dict = new_column_dict,parameter_dict = self.parameter_dict)
 
     def y_at_x(self,x_column_name,y_column_name,x_values):
 
-        f = interp1d(self.column_dict[x_column_name],self.column_dict[y_column_name],fill_value='extrapolate')
+        f = interp1d(self.get_column_data(x_column_name),self.get_column_data(y_column_name),fill_value='extrapolate')
 
         return f(x_values)
 
-    def symetrize(self,x_column_name,sym_y_column_names = list(),antisym_y_column_names = list(),x_values = None,x_step = None,new_curve = False):
+    def symetrize(self,x_column_name,sym_y_column_names = list(),antisym_y_column_names = list(),x_values = None,x_step = None):
 
         if x_values is None and not x_step is None:
             x_values = self.auto_sym_x_values(x_column_name,x_step)
@@ -264,178 +378,59 @@ class DataCurve(object):
         else:
             raise(ValueError('Most provide x_values or x_step'))
 
-        new_column_dict = dict()
-        for column_name in self.column_names:
-            f = interp1d(getattr(self,x_column_name),getattr(self,column_name),fill_value='extrapolate')
+        sym_column_dict = dict()
+        for column_name, column in self.column_dict.items():
+            f = interp1d(self.get_column_data(x_column_name),column.data,fill_value='extrapolate')
             if column_name in sym_y_column_names:
-                new_column_dict[column_name] = (f(x_values) + f(-x_values))/2
+                sym_data = (f(x_values) + f(-x_values))/2
+            elif column_name in antisym_y_column_names:
+                sym_data = (f(x_values) - f(-x_values))/2
+            else:
+                continue
 
-            if column_name in antisym_y_column_names:
-                new_column_dict[column_name] = (f(x_values) - f(-x_values))/2
+            sym_column_dict[column_name] = Column(column_name,column.units,sym_data)
         
-        return self._apply_column_dict(new_column_dict,new_curve)
+        return self.set_column_dict(sym_column_dict)
 
     def auto_sym_x_values(self,x_column_name,x_step):
 
-        max_x_value = np.max(np.round(getattr(self,x_column_name)/x_step))*x_step
+        max_x_value = np.max(np.round(self.get_column_data(x_column_name)/x_step))*x_step
 
         return np.linspace(0,max_x_value,int(max_x_value/x_step)+1)
 
     def get_values_array(self):
 
-        self.crop()
-        values_array = np.zeros((self.data_length,len(self.column_names)))
-        for i, column_name in enumerate(self.column_names):
-            values_array[:,i] = self.column_dict[column_name]
+        self._crop()
+        values_array = np.zeros((self.data_length,self.column_number()))
+        for i, column_name in enumerate(self.column_dict):
+            values_array[:,i] = self.column_dict[column_name].get_data()
 
         return values_array
 
-    def merge_with(self,other):
+    def append(self,other):
 
         new_column_dict = dict()
-        for column_name in self.column_names:
-            X1 = self.column_dict[column_name]
-            X2 = other.column_dict[column_name]
-            new_column_dict[column_name] = np.concatenate((X1,X2))
+        for column_name, column in self.column_dict.items():
+            X1 = self.column_dict[column_name].get_data()
+            X2 = other.column_dict[column_name].get_data()
+            new_data = np.concatenate((X1,X2))
 
-        return self.__class__(**new_column_dict,**self.parameter_dict)
+            new_column_dict[column_name] = Column(column_name,column.units,new_data)
 
-class DataCurvePint(DataCurve):
+        self.set_column_dict(new_column_dict)
 
-    def __str__(self):
+class DataCurveSequence(object):
 
-        info_str = f'{self.curve_name:s} ({self.data_length:d} data points)\n'
-        if self.parameter_dict:
-            for parameter_name in self.parameter_dict:
-                info_str += parameter_name + ' : ' + str(self.parameter_dict[parameter_name]) + ', '
-        if self.column_dict:
-            for column_name in self.column_dict:
-                info_str += ' ' + column_name + ' (' + str(self.column_dict[column_name].units) + ')\n'
+    def __init__(self,data_curves = list()):
 
-        return info_str[:-1]
+        self.data_curves = data_curves
 
-    def init_columns(self,column_names,column_units_labels):
+    def add_data_curve(self,data_curve):
 
-        for i, (column_name,column_units_label) in enumerate(zip(column_names,column_units_labels)):
-            try:
-                column_units = ureg(column_units_label)
-            except:
-                column_units = ureg('')
-                Warning('Pint could not parse {0:s} to units. Column will be dimensionless')
-            self.add_column(column_name,np.empty([0,])*column_units)
+        self.data_curves.append(data_curve)
 
-    def add_data_point(self,values):
 
-        if not len(values) == self.column_number():
-            raise ValueError('New Data dimension ({0:d}) is not conform to the number of data columns ({1:d}).'.format(len(values),self.column_number()))
 
-        if self.extend_data_length == self.data_length:
-            self._extend_chunk()
 
-        if isinstance(values,dict):
-            new_data = values
-            if not new_data.keys() == self.column_dict.keys():
-                ValueError('Column name should already be present in DataCurve')
 
-        elif isinstance(values,list) or isinstance(values,np.ndarray):
-            new_data = dict(zip(self.column_names,values))
-
-        for column_name in self.column_dict:
-            if not hasattr(new_data[column_name],'units'):
-                new_data[column_name] = new_data[column_name]*self.column_dict[column_name].units
-            else:
-                new_data[column_name].ito(self.column_dict[column_name].units)
-            
-            self.column_dict[column_name][self.data_length] = new_data[column_name]
         
-        self.data_length += 1
-
-    def _extend_chunk(self):
-
-        for column_name in self.column_dict:
-            larger_column_data = np.zeros((self.data_length+self.chunk_size,))*self.column_dict[column_name].units
-            larger_column_data[:self.data_length] = self.column_dict[column_name]
-            self.column_dict[column_name] = larger_column_data
-        self.extend_data_length = self.data_length+self.chunk_size
-
-    def get_column_units(self,as_string = False):
-
-        column_units = list()
-
-        for column_name in self.column_dict:
-            if as_string:
-                units_string = '{:~P}'.format(self.column_dict[column_name].units)
-            else:
-                units_string = self.column_dict[column_name].units
-
-            column_units.append(units_string)
-
-        return column_units
-
-    def average_multiple_measurement(self,select_column_name,value_step,new_curve = False):
-
-        unique_values = np.unique(np.round((self.column_dict[select_column_name].to(value_step.units)/value_step).magnitude))*value_step
-        
-        new_column_dict = dict()
-
-        for column_name in self.column_dict:
-            column_units = self.column_dict[column_name].units
-            new_column_dict[column_name] = np.zeros(unique_values.shape)*column_units
-            for i_value, value in enumerate(unique_values):
-                ind = (self.column_dict[select_column_name] - value)**2 < value_step**2/2
-            
-                new_column_dict[column_name][i_value] = np.average(self.column_dict[column_name][ind].magnitude)*column_units
-
-        return self._apply_column_dict(new_column_dict,new_curve)
-
-    def y_at_x(self,x_column_name,y_column_name,x_values):
-
-        f = interp1d(self.column_dict[x_column_name].magnitude,self.column_dict[y_column_name].magnitude,fill_value='extrapolate')
-
-        return f(x_values.to(self.column_dict[x_column_name].units).magnitude)*self.column_dict[y_column_name].units
-
-    def symetrize(self,x_column_name,sym_y_column_names = list(),antisym_y_column_names = list(),x_values = None,x_step = None,new_curve = False):
-
-        if x_values is None and not x_step is None:
-            x_values = self.auto_sym_x_values(x_column_name,x_step)
-        elif not x_values is None and x_step is None:
-            pass
-        else:
-            raise(ValueError('Most provide x_values or x_step'))
-
-        new_column_dict = dict()
-        for column_name in self.column_names:
-            f = interp1d(getattr(self,x_column_name).magnitude,getattr(self,column_name).magnitude,fill_value='extrapolate')
-            if column_name in sym_y_column_names:
-                new_column_dict[column_name] = (f(x_values.magnitude) + f(-x_values.magnitude))/2 * getattr(self,column_name).units
-
-            if column_name in antisym_y_column_names:
-                new_column_dict[column_name] = (f(x_values.magnitude) - f(-x_values.magnitude))/2 * getattr(self,column_name).units
-        
-        return self._apply_column_dict(new_column_dict,new_curve)
-
-    def auto_sym_x_values(self,x_column_name,x_step):
-
-        max_x_value = np.max(np.round(getattr(self,x_column_name)/x_step))*x_step
-
-        return np.linspace(0,max_x_value.magnitude,int(max_x_value/x_step)+1)*getattr(self,x_column_name).units
-
-    def get_values_array(self):
-
-        self.crop()
-        values_array = np.zeros((self.data_length,len(self.column_names)))
-        for i, column_name in enumerate(self.column_names):
-            values_array[:,i] = self.column_dict[column_name].magnitude
-
-        return values_array
-
-    def merge_with(self,other):
-
-        new_column_dict = dict()
-        for column_name in self.column_names:
-            X1 = self.column_dict[column_name]
-            X2 = other.column_dict[column_name]
-            new_column_dict[column_name] = np.concatenate((X1.magnitude,X2.to(X1.units).magnitude))*X1.units
-
-        return self.__class__(**new_column_dict,**self.parameter_dict)
-    
