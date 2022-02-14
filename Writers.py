@@ -131,7 +131,7 @@ class DataColumnWriter(Writer):
             if column_units[i] is None:
                 column_str = "{0:s}".format(column_name)
             else:
-                column_str = "{0:s} ({1:s})".format(column_name,column_units[i])
+                column_str = "{0:s}({1:s})".format(column_name,column_units[i])
             head_line += "{col:>{width}s}{sep:s}".format(col = column_str,width = self.column_width,sep = self.separator)
 
         if head_line:
